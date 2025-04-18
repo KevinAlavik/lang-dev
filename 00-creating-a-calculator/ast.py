@@ -25,6 +25,10 @@ class FunctionCallNode(ASTNode):
         self.name = name
         self.argument = argument
 
+class IdentifierNode(ASTNode):
+    def __init__(self, name):
+        self.name = name
+
 def pretty_print(node, indent="", is_last=True):
     marker = "└── " if is_last else "├── "
 
@@ -99,9 +103,8 @@ def parse(tokens):
             return UnaryOpNode(TokenType.PLUS, expr)
 
         elif token_type == TokenType.IDENTIFIER:
-            # Handle function calls
-            func_name = value
             if current_token()[0] == TokenType.LPAREN:
+                func_name = value
                 eat()  # Consume '('
                 argument = parse_expression()
                 if current_token()[0] != TokenType.RPAREN:
@@ -109,7 +112,7 @@ def parse(tokens):
                 eat()  # Consume ')'
                 return FunctionCallNode(func_name, argument)
             else:
-                raise ValueError(f"Unexpected identifier usage: '{value}'")
+                return IdentifierNode(value)
 
         else:
             raise ValueError(f"Unexpected token: {token_type}")

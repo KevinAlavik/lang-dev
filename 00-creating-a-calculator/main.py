@@ -3,7 +3,6 @@ import lexer
 import ast
 from eval import evaluate
 
-# Simple repl for my calculator
 def main():
     while True:
         input_expression = input(">>> ")
@@ -12,10 +11,18 @@ def main():
             break
         try:
             tokens = lexer.tokenize(input_expression)
+            print("Tokens:")
+            print("[")
+            for token, value in tokens:
+                print(f"    ({token}, '{value}'),")
+            print("]")
             tree = ast.parse(tokens)
+            print("\nAST:")
+            ast.pretty_print(tree)
+            print("\nResult:")
             print(evaluate(tree))
+
         except ValueError as e:
             print(f"Error: {e}")
-
 if __name__ == "__main__":
     main()

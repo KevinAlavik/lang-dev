@@ -60,23 +60,15 @@ def tokenize(input_expression):
             tokens.append((TokenType.NUMBER, float(number)))
             continue
 
-        # Identifiers (functions) – only valid if followed by '('
+        # Identifiers
         elif current_char.isalpha():
             ident = ''
             while pos < length and (input_expression[pos].isalnum() or input_expression[pos] == '_'):
                 ident += input_expression[pos]
                 pos += 1
 
-            # Peek next non-whitespace character
-            peek_pos = pos
-            while peek_pos < length and input_expression[peek_pos].isspace():
-                peek_pos += 1
-
-            if peek_pos < length and input_expression[peek_pos] == '(':
-                tokens.append((TokenType.IDENTIFIER, ident))
-                continue
-            else:
-                raise ValueError(f"Invalid identifier usage: '{ident}' must be followed by '('")
+            tokens.append((TokenType.IDENTIFIER, ident))
+            continue
 
         else:
             raise ValueError(f"Invalid character: {current_char}")

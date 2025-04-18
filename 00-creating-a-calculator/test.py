@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import time
 import lexer
 import ast
@@ -49,6 +50,7 @@ def run_tests():
 
         # Advanced math
         ("sqrt(sqrt(9) * 3)", 3.0, "advanced"),
+        ("PI", math.pi, "advanced"),
     ]
 
     passed = 0

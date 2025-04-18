@@ -1,9 +1,34 @@
-import math
 import ast
 import lexer
+import math
 
 function_table = {
     "sqrt": math.sqrt,
+    "exp": math.exp,
+    "log": math.log,
+    "log10": math.log10,
+    "sin": math.sin,
+    "cos": math.cos,
+    "tan": math.tan,
+    "asin": math.asin,
+    "acos": math.acos,
+    "atan": math.atan,
+    "sinh": math.sinh,
+    "cosh": math.cosh,
+    "tanh": math.tanh,
+    "degrees": math.degrees,
+    "radians": math.radians,
+    "ceil": math.ceil,
+    "floor": math.floor,
+    "factorial": math.factorial,
+}
+
+identifier_table = {
+    "PI": math.pi,
+    "E": math.e,
+    "TAU": math.tau,
+    "INF": math.inf,
+    "NAN": math.nan
 }
 
 def evaluate(node):
@@ -43,5 +68,10 @@ def evaluate(node):
 
         # Call the function with the evaluated argument
         return func(arg_value)
+    elif isinstance(node, ast.IdentifierNode):
+        value = identifier_table.get(node.name)
+        if value is None:
+            raise ValueError(f"Unknown identifier: {node.name}")
+        return value
     else:
         raise ValueError(f"Unknown node type: {type(node)}")
