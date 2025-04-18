@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 class TokenType(Enum):
     NUMBER = auto()
-
+    IDENTIFIER = auto()
     MULTIPLY = auto()
     PLUS = auto()
     MINUS = auto()
@@ -30,22 +30,21 @@ def tokenize(input_expression):
     while pos < length:
         current_char = input_expression[pos]
 
-        # Skip spaces
+        # Skip whitespace
         if current_char.isspace():
             pos += 1
             continue
 
-        # Handle symbols and shit
+        # Symbols like + - * / ( )
         if current_char in token_map:
             tokens.append((token_map[current_char], current_char))
             pos += 1
             continue
 
-        # Handle numbers (int and float)
+        # Numbers (float or int)
         elif current_char.isdigit() or current_char == '.':
             number = ''
             dot_seen = False
-            start_pos = pos
 
             while pos < length and (input_expression[pos].isdigit() or input_expression[pos] == '.'):
                 if input_expression[pos] == '.':
@@ -55,17 +54,29 @@ def tokenize(input_expression):
                 number += input_expression[pos]
                 pos += 1
 
-            # validate number
             if number == '.' or number.endswith('.'):
                 raise ValueError(f"Invalid number format: '{number}'")
 
-            try:
-                value = float(number)
-            except ValueError:
-                raise ValueError(f"Invalid number format: '{number}'")
-
-            tokens.append((TokenType.NUMBER, value))
+            tokens.append((TokenType.NUMBER, float(number)))
             continue
+
+        # Identifiers (functions) – only valid if followed by '('
+        elif current_char.isalpha():
+            ident = ''
+            while pos < length and (input_expression[pos].isalnum() or input_expression[pos] == '_'):
+                ident += input_expression[pos]
+                pos += 1
+
+            # Peek next non-whitespace character
+            peek_pos = pos
+            while peek_pos < length and input_expression[peek_pos].isspace():
+                peek_pos += 1
+
+            if peek_pos < length and input_expression[peek_pos] == '(':
+                tokens.append((TokenType.IDENTIFIER, ident))
+                continue
+            else:
+                raise ValueError(f"Invalid identifier usage: '{ident}' must be followed by '('")
 
         else:
             raise ValueError(f"Invalid character: {current_char}")

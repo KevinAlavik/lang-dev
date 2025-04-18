@@ -86,7 +86,8 @@ def parse(tokens):
         elif token_type == TokenType.PLUS:
             expr = parse_primary()
             return UnaryOpNode(TokenType.PLUS, expr)
-
+        elif token_type == TokenType.IDENTIFIER:
+            raise NotImplementedError(f"{token_type} not implemented, {value}")
         else:
             raise ValueError(f"Unexpected token: {token_type}")
 
