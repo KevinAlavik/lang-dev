@@ -2,35 +2,7 @@
 import time
 import lexer
 import ast
-
-def evaluate(node):
-    if isinstance(node, ast.NumberNode):
-        return node.value
-    elif isinstance(node, ast.UnaryOpNode):
-        expr_value = evaluate(node.expr)
-        if node.op == lexer.TokenType.MINUS:
-            return -expr_value
-        elif node.op == lexer.TokenType.PLUS:
-            return expr_value
-        else:
-            raise ValueError(f"Unknown operator: {node.op}")
-    elif isinstance(node, ast.BinaryOpNode):
-        left_value = evaluate(node.left)
-        right_value = evaluate(node.right)
-        if node.op == lexer.TokenType.PLUS:
-            return left_value + right_value
-        elif node.op == lexer.TokenType.MINUS:
-            return left_value - right_value
-        elif node.op == lexer.TokenType.MULTIPLY:
-            return left_value * right_value
-        elif node.op == lexer.TokenType.DIVIDE:
-            if right_value == 0:
-                raise ValueError("Division by zero")
-            return left_value / right_value
-        else:
-            raise ValueError(f"Unknown operator: {node.op}")
-    else:
-        raise ValueError(f"Unknown node type: {type(node)}")
+from eval import evaluate
 
 def run_tests():
     test_cases = [
@@ -75,8 +47,8 @@ def run_tests():
         ("1 / 0", ValueError, "invalid"),
         ("abc", ValueError, "invalid"),
 
-        # Functions
-        ("sqrt(1)", NotImplementedError, "invalid"),
+        # Advanced math
+        ("sqrt(sqrt(9) * 3)", 3.0, "advanced"),
     ]
 
     passed = 0

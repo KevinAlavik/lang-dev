@@ -1,4 +1,5 @@
 from lexer import TokenType
+import math
 
 class ASTNode:
     def __repr__(self):
@@ -19,6 +20,11 @@ class BinaryOpNode(ASTNode):
         self.op = op_token
         self.right = right
 
+class FunctionCallNode(ASTNode):
+    def __init__(self, name, argument):
+        self.name = name
+        self.argument = argument
+
 def pretty_print(node, indent="", is_last=True):
     marker = "└── " if is_last else "├── "
 
@@ -32,6 +38,9 @@ def pretty_print(node, indent="", is_last=True):
         indent += "    " if is_last else "│   "
         pretty_print(node.left, indent, False)
         pretty_print(node.right, indent, True)
+    elif isinstance(node, FunctionCallNode):
+        print(f"{indent}{marker}FunctionCall({node.name})")
+        pretty_print(node.argument, indent + "    ", True)
     else:
         print(f"{indent}{marker}UnknownNode({node})")
 
@@ -44,6 +53,8 @@ def compact_print(node):
     elif isinstance(node, BinaryOpNode):
         op_name = node.op.name.capitalize()
         return f"{op_name}({compact_print(node.left)}, {compact_print(node.right)})"
+    elif isinstance(node, FunctionCallNode):
+        return f"{node.name.capitalize()}({compact_print(node.argument)})"
     else:
         return f"Unknown({node})"
 
@@ -86,8 +97,20 @@ def parse(tokens):
         elif token_type == TokenType.PLUS:
             expr = parse_primary()
             return UnaryOpNode(TokenType.PLUS, expr)
+
         elif token_type == TokenType.IDENTIFIER:
-            raise NotImplementedError(f"{token_type} not implemented, {value}")
+            # Handle function calls
+            func_name = value
+            if current_token()[0] == TokenType.LPAREN:
+                eat()  # Consume '('
+                argument = parse_expression()
+                if current_token()[0] != TokenType.RPAREN:
+                    raise ValueError(f"Expected ')'")
+                eat()  # Consume ')'
+                return FunctionCallNode(func_name, argument)
+            else:
+                raise ValueError(f"Unexpected identifier usage: '{value}'")
+
         else:
             raise ValueError(f"Unexpected token: {token_type}")
 
