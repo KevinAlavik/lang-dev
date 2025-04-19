@@ -1,7 +1,7 @@
 import math
-import pprint
 from parser import *
 from lexer import *
+import pprint
 
 
 class RuntimeError(Exception):
@@ -179,9 +179,9 @@ class Runtime:
                     )
 
             elif isinstance(node, BinaryOpNode):
-                pprint.pp(node)
                 left_value = self.eval(node.left)
                 right_value = self.eval(node.right)
+
                 if node.op == TokenType.LOGICAL_AND:
                     if not isinstance(left_value, bool) or not isinstance(
                         right_value, bool
@@ -204,7 +204,26 @@ class Runtime:
                         )
                     return left_value or right_value
 
-                if node.op == TokenType.PLUS:
+                elif node.op == TokenType.EQUAL_EQUAL:
+                    return left_value == right_value
+
+                elif node.op == TokenType.BANG_EQUAL:
+                    return left_value != right_value
+
+                elif node.op == TokenType.GREATER:
+                    return left_value > right_value
+
+                elif node.op == TokenType.LESS:
+                    return left_value < right_value
+
+                elif node.op == TokenType.GREATER_EQUAL:
+                    return left_value >= right_value
+
+                elif node.op == TokenType.LESS_EQUAL:
+                    return left_value <= right_value
+
+                # Handle addition (+)
+                elif node.op == TokenType.PLUS:
                     if isinstance(left_value, str) and isinstance(right_value, str):
                         return left_value + right_value
                     else:
@@ -213,16 +232,23 @@ class Runtime:
                             node=node,
                             scope=self.global_scope,
                         )
+
+                # Handle subtraction (-)
                 elif node.op == TokenType.MINUS:
                     return left_value - right_value
+
+                # Handle multiplication (*)
                 elif node.op == TokenType.MULTIPLY:
                     return left_value * right_value
+
+                # Handle division (/)
                 elif node.op == TokenType.DIVIDE:
                     if right_value == 0:
                         raise RuntimeError(
                             "Division by zero", node=node, scope=self.global_scope
                         )
                     return left_value / right_value
+
                 else:
                     raise RuntimeError(
                         f"Unsupported binary operation: {node.op}",
@@ -261,85 +287,54 @@ class Runtime:
                 self.global_scope.assign_var(node.name, value)
                 return value
 
-            elif isinstance(node, LessThanNode):
-                left_value = self.eval(node.left)
-                right_value = self.eval(node.right)
-                if not isinstance(left_value, (int, float)) or not isinstance(
-                    right_value, (int, float)
-                ):
+            elif isinstance(node, IfNode):
+                condition_value = self.eval(node.condition)
+                if condition_value:
+                    for statement in node.body:
+                        result = self.eval(statement)
+                        if isinstance(statement, ReturnNode):
+                            if self.global_scope.parent is None:
+                                exit(result)
+                            return result
+                elif node.else_body:
+                    for statement in node.else_body:
+                        result = self.eval(statement)
+                        if isinstance(statement, ReturnNode):
+                            if self.global_scope.parent is None:
+                                exit(result)
+                            return result
+                return None
+
+            elif isinstance(node, FunctionCallNode):
+                func = self.global_scope.get_var(node.name)
+                if not callable(func):
                     raise RuntimeError(
-                        f"Unsupported operand types for '<': {type(left_value)} and {type(right_value)}",
+                        f"'{node.name}' is not a function",
                         node=node,
                         scope=self.global_scope,
                     )
-                return left_value < right_value
+                evaluated_args = [self.eval(arg) for arg in node.argument]
+                return func(evaluated_args)
 
-            elif isinstance(node, GreaterThanNode):
-                left_value = self.eval(node.left)
-                right_value = self.eval(node.right)
-                if not isinstance(left_value, (int, float)) or not isinstance(
-                    right_value, (int, float)
-                ):
-                    raise RuntimeError(
-                        f"Unsupported operand types for '>': {type(left_value)} and {type(right_value)}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
-                return left_value > right_value
+            elif isinstance(node, FunctionDeclarationNode):
+                func_obj = UserFunction(
+                    node.name, node, defining_scope=self.global_scope
+                )
+                self.global_scope.functions[node.name] = func_obj
+                return None
 
-            elif isinstance(node, LessThanEqualNode):
-                left_value = self.eval(node.left)
-                right_value = self.eval(node.right)
-                if not isinstance(left_value, (int, float)) or not isinstance(
-                    right_value, (int, float)
-                ):
-                    raise RuntimeError(
-                        f"Unsupported operand types for '<=': {type(left_value)} and {type(right_value)}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
-                return left_value <= right_value
+            elif isinstance(node, ReturnNode):
+                return self.eval(node.return_value)
 
-            elif isinstance(node, GreaterThanEqualNode):
-                left_value = self.eval(node.left)
-                right_value = self.eval(node.right)
-                if not isinstance(left_value, (int, float)) or not isinstance(
-                    right_value, (int, float)
-                ):
-                    raise RuntimeError(
-                        f"Unsupported operand types for '>=': {type(left_value)} and {type(right_value)}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
-                return left_value >= right_value
+            elif isinstance(node, VariableDeclarationNode):
+                value = self.eval(node.value)
+                self.global_scope.set_var(node.name, value)
+                return value
 
-            elif isinstance(node, EqualNode):
-                left_value = self.eval(node.left)
-                right_value = self.eval(node.right)
-                if isinstance(left_value, (float, int)) and isinstance(
-                    right_value, (float, int)
-                ):
-                    if math.isnan(left_value) or math.isnan(right_value):
-                        raise RuntimeError(
-                            "Cannot compare NaN values",
-                            node=node,
-                            scope=self.global_scope,
-                        )
-                return left_value == right_value
-
-            elif isinstance(node, NotEqualNode):
-                left_value = self.eval(node.left)
-                right_value = self.eval(node.right)
-                if isinstance(left_value, (float, int)) and isinstance(
-                    right_value, (float, int)
-                ):
-                    if math.isnan(left_value) or math.isnan(right_value):
-                        raise RuntimeError(
-                            "Cannot compare NaN values",
-                            node=node,
-                            scope=self.global_scope,
-                        )
-                return left_value != right_value
+            elif isinstance(node, VariableAssignmentNode):
+                value = self.eval(node.value)
+                self.global_scope.assign_var(node.name, value)
+                return value
 
             elif isinstance(node, IfNode):
                 condition_value = self.eval(node.condition)

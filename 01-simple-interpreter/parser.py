@@ -80,42 +80,6 @@ class FunctionDeclarationNode(ASTNode):
         self.body = body
 
 
-class LessThanNode(ASTNode):
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
-
-
-class GreaterThanNode(ASTNode):
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
-
-
-class LessThanEqualNode(ASTNode):
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
-
-
-class GreaterThanEqualNode(ASTNode):
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
-
-
-class EqualNode(ASTNode):
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
-
-
-class NotEqualNode(ASTNode):
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
-
-
 class IfNode(ASTNode):
 
     def __init__(self, condition, body, else_body=None):
@@ -229,58 +193,11 @@ def parse(tokens):
         left = parse_unary()
 
         while True:
-            token_type, token_value = current_token()
-
-            # Logical and comparison operators using precedence
-            if token_type in (
-                TokenType.EQUAL_EQUAL,
-                TokenType.BANG_EQUAL,
-                TokenType.LESS,
-                TokenType.GREATER,
-                TokenType.LESS_EQUAL,
-                TokenType.GREATER_EQUAL,
-            ):
-                prec = PRECEDENCE.get(token_type, 0)
-                if prec < min_prec:
-                    break
-
-                op_token, _ = expect(token_type)
-                right = parse_unary()
-
-                if token_type == TokenType.EQUAL_EQUAL:  # "=="
-                    left = EqualNode(left, right)
-                elif token_type == TokenType.BANG_EQUAL:  # "!="
-                    left = NotEqualNode(left, right)
-                elif token_type == TokenType.LESS:  # "<"
-                    left = LessThanNode(left, right)
-                elif token_type == TokenType.GREATER:  # ">"
-                    left = GreaterThanNode(left, right)
-                elif token_type == TokenType.LESS_EQUAL:  # "<="
-                    left = LessThanEqualNode(left, right)
-                elif token_type == TokenType.GREATER_EQUAL:  # ">="
-                    left = GreaterThanEqualNode(left, right)
-                continue
-
-            # Logical operators AND/OR with a higher precedence
-            if token_type in (TokenType.LOGICAL_AND, TokenType.LOGICAL_OR):
-                prec = PRECEDENCE.get(token_type, 0)
-                if prec < min_prec:
-                    break
-
-                op_token, _ = expect(token_type)
-                right = parse_unary()
-
-                if token_type == TokenType.LOGICAL_AND:
-                    left = BinaryOpNode(left, op_token, right)
-                elif token_type == TokenType.LOGICAL_OR:
-                    left = BinaryOpNode(left, op_token, right)
-
-                continue
-
+            token_type, _ = current_token()
             if token_type not in PRECEDENCE:
                 break
 
-            prec = PRECEDENCE.get(token_type, 0)
+            prec = PRECEDENCE[token_type]
             if prec < min_prec:
                 break
 
