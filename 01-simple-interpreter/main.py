@@ -6,7 +6,10 @@ import ast
 
 def main(src):
     tokens = lexer.tokenize(src)
-    print(ast.print(ast.parse(tokens)))
+    # print(" ".join(f"<{token_type.name}:{value}>" for token_type, value in tokens))
+    ast_tree = ast.parse(tokens)
+    for node in ast_tree:
+        print(node)
 
 
 # stuff

@@ -12,6 +12,16 @@ class NumberNode(ASTNode):
         self.value = float(value)
 
 
+class CharNode(ASTNode):
+    def __init__(self, value):
+        self.value = value
+
+
+class StringNode(ASTNode):
+    def __init__(self, value):
+        self.value = value
+
+
 class UnaryOpNode(ASTNode):
     def __init__(self, op_token, expr):
         self.op = op_token
@@ -41,29 +51,10 @@ class ReturnNode(ASTNode):
         self.return_value = return_value
 
 
-def print(node):
-    if isinstance(node, NumberNode):
-        return str(node.value)
-
-    elif isinstance(node, IdentifierNode):
-        return node.name
-
-    elif isinstance(node, UnaryOpNode):
-        op_name = node.op.name.capitalize()
-        return f"{op_name}({print(node.expr)})"
-
-    elif isinstance(node, BinaryOpNode):
-        op_name = node.op.name.capitalize()
-        return f"{op_name}({print(node.left)}, {print(node.right)})"
-
-    elif isinstance(node, FunctionCallNode):
-        return f"{node.name}({print(node.argument)})"
-
-    elif isinstance(node, ReturnNode):
-        return f"Return({print(node.return_value)})"
-
-    else:
-        return f"Unknown({node})"
+class VariableDeclarationNode(ASTNode):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
 
 
 # Operator precedence
@@ -81,13 +72,16 @@ def parse(tokens):
     def current_token():
         return tokens[pos] if pos < len(tokens) else (None, None)
 
+    def next_token():
+        return tokens[pos + 1] if pos + 1 < len(tokens) else (None, None)
+
     def eat():
         nonlocal pos
         token = current_token()
         pos += 1
         return token
 
-    def expect(token_type, token_value=None):
+    def expect(token_type, token_value=None, optional=False):
         nonlocal pos
         token_type_actual, token_value_actual = current_token()
         if token_type_actual == token_type and (
@@ -96,6 +90,9 @@ def parse(tokens):
             token = current_token()
             pos += 1
             return token
+
+        if optional:
+            return None
         raise ValueError(
             f"Expected token: ({token_type}, {token_value}), got: ({token_type_actual}, {token_value_actual})"
         )
@@ -106,6 +103,14 @@ def parse(tokens):
         if token_type == TokenType.NUMBER:
             expect(TokenType.NUMBER)
             return NumberNode(value)
+
+        elif token_type == TokenType.CHAR:
+            expect(TokenType.CHAR)
+            return CharNode(value)
+
+        elif token_type == TokenType.STRING:
+            expect(TokenType.STRING)
+            return StringNode(value)
 
         elif token_type == TokenType.IDENTIFIER:
             expect(TokenType.IDENTIFIER)
@@ -156,11 +161,25 @@ def parse(tokens):
     def parse_statement():
         token_type, value = current_token()
 
+        # Parse return statements
         if token_type == TokenType.KEYWORD and value == "return":
             expect(TokenType.KEYWORD, "return")
             expr = parse_expression()
             return ReturnNode(expr)
 
+        # Parse variable declaration
+        if token_type == TokenType.IDENTIFIER:
+            var_name = value
+            if next_token()[0] == TokenType.EQUAL:
+                eat()  # Eat the EQUAL token
+                eat()  # Eat the value
+                expr = parse_expression()
+                return VariableDeclarationNode(var_name, expr)
+
         return parse_expression()
 
-    return parse_statement()
+    statements = []
+    while pos < len(tokens):
+        statements.append(parse_statement())
+
+    return statements

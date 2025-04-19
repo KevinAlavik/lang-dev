@@ -19,6 +19,10 @@ class TokenType(Enum):
     LBRACKET = auto()
     RBRACKET = auto()
     COMMA = auto()
+    EQUAL = auto()
+
+    STRING = auto()
+    CHAR = auto()
 
     def __str__(self):
         return self.name
@@ -38,6 +42,7 @@ token_map = {
     "-": TokenType.MINUS,
     "*": TokenType.MULTIPLY,
     "/": TokenType.DIVIDE,
+    "=": TokenType.EQUAL,
 }
 
 
@@ -54,11 +59,46 @@ def tokenize(input_expression):
             pos += 1
             continue
 
-        # Skip comments (anything starting with '#')
+        # Skip comments
         if current_char == "#":
             while pos < length and input_expression[pos] != "\n":
                 pos += 1
-            # Skip the newline character after the comment
+            pos += 1
+            continue
+
+        # Tokenize string literals
+        if current_char == '"':
+            pos += 1
+            start_pos = pos
+            while pos < length and input_expression[pos] != '"':
+                pos += 1
+            if pos >= length:
+                raise ValueError("Unterminated string literal")
+            string_value = input_expression[start_pos:pos]
+            tokens.append((TokenType.STRING, string_value))
+            pos += 1
+            continue
+
+        # Tokenize char literals
+        if current_char == "'":
+            pos += 1
+            if pos >= length:
+                raise ValueError("Unterminated character literal")
+
+            if input_expression[pos] == "\\":  # Handle escape characters like '\n'
+                pos += 1
+                if pos >= length:
+                    raise ValueError("Unterminated escape in character literal")
+                char_value = "\\" + input_expression[pos]
+                pos += 1
+            else:
+                char_value = input_expression[pos]
+                pos += 1
+
+            if pos >= length or input_expression[pos] != "'":
+                raise ValueError("Unterminated or invalid character literal")
+
+            tokens.append((TokenType.CHAR, char_value))
             pos += 1
             continue
 
@@ -73,12 +113,10 @@ def tokenize(input_expression):
             if word in keyword_table:
                 tokens.append((TokenType.KEYWORD, word))
             else:
-                tokens.append(
-                    (TokenType.IDENTIFIER, word)
-                )  # If it's not a keyword, treat it as an identifier
+                tokens.append((TokenType.IDENTIFIER, word))
             continue
 
-        # Tokenize numbers (only integers for now)
+        # Tokenize numbers
         if current_char.isdigit():
             start_pos = pos
             while pos < length and input_expression[pos].isdigit():
@@ -87,7 +125,7 @@ def tokenize(input_expression):
             tokens.append((TokenType.NUMBER, number))
             continue
 
-        # Tokenize single char tokens using the token_map
+        # Tokenize symbols
         if current_char in token_map:
             tokens.append((token_map[current_char], current_char))
             pos += 1
