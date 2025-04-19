@@ -1,5 +1,5 @@
 fn test() {
-    return 69
+    print("Hello from " + str(self)) // self -> test
 }
 
-return test()
+test()

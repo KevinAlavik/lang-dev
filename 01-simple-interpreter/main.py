@@ -7,11 +7,13 @@ import runtime
 
 def main(file_path, src):
     tokens = lexer.tokenize(src)
+    # print(tokens)
     ast_tree = ast.parse(tokens)
-    interpreter = runtime.Interpreter()
+    global_scope = runtime.Scope()
+    r = runtime.Runtime(global_scope)
 
     try:
-        result = interpreter.run(ast_tree)
+        result = r.run(ast_tree)
         if result != 0:
             print(f"Program {file_path} returned non-zero value: {result}")
     except runtime.RuntimeError as e:

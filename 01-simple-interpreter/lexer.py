@@ -1,5 +1,7 @@
 from enum import Enum, auto
 
+from enum import Enum, auto
+
 
 class TokenType(Enum):
     NUMBER = auto()
@@ -21,6 +23,9 @@ class TokenType(Enum):
     COMMA = auto()
     EQUAL = auto()
 
+    GREATER = auto()
+    LESS = auto()
+
     STRING = auto()
     CHAR = auto()
 
@@ -28,7 +33,7 @@ class TokenType(Enum):
         return self.name
 
 
-keyword_table = {"return", "fn", "var"}
+keyword_table = {"return", "fn", "var", "if"}
 
 token_map = {
     "(": TokenType.LPAREN,
@@ -43,6 +48,8 @@ token_map = {
     "*": TokenType.MULTIPLY,
     "/": TokenType.DIVIDE,
     "=": TokenType.EQUAL,
+    ">": TokenType.GREATER,
+    "<": TokenType.LESS,
 }
 
 
@@ -59,8 +66,10 @@ def tokenize(input_expression):
             pos += 1
             continue
 
-        # Skip comments
-        if current_char == "#":
+        # Skip comments (# or //)
+        if current_char == "#" or (
+            current_char == "/" and input_expression[pos + 1] == "/"
+        ):
             while pos < length and input_expression[pos] != "\n":
                 pos += 1
             pos += 1
