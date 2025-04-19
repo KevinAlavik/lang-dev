@@ -2,17 +2,22 @@
 import sys
 import lexer
 import ast
+import runtime
 
 
-def main(src):
+def main(file_path, src):
     tokens = lexer.tokenize(src)
-    # print(" ".join(f"<{token_type.name}:{value}>" for token_type, value in tokens))
     ast_tree = ast.parse(tokens)
-    for node in ast_tree:
-        print(node)
+    interpreter = runtime.Interpreter()
+
+    try:
+        result = interpreter.run(ast_tree)
+        if result != 0:
+            print(f"Program {file_path} returned non-zero value: {result}")
+    except runtime.RuntimeError as e:
+        pass
 
 
-# stuff
 def bootstrap():
     if len(sys.argv) < 2:
         print("Usage: python3 script.py <file_path>")
@@ -23,7 +28,7 @@ def bootstrap():
     try:
         with open(file_path, "r") as file:
             content = file.read()
-            main(content)
+            main(file_path, content)
     except FileNotFoundError:
         print(f"Error: File '{file_path}' not found.")
         sys.exit(1)
