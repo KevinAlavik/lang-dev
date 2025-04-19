@@ -1,2 +1,9 @@
-print(True == False)
-print(False == True)
+var name = input("Whats your name? ")
+
+if(name == "Kevin" || name == "kevin") {
+	print("Hi creator!")
+} else if(name == "Bonzo") {
+	print("Hi nerd!")
+} else {
+	print("Hi " + name + "!")
+}

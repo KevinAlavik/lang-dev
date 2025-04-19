@@ -117,17 +117,29 @@ class NotEqualNode(ASTNode):
 
 
 class IfNode(ASTNode):
-    def __init__(self, condition, body):
+
+    def __init__(self, condition, body, else_body=None):
         self.condition = condition
         self.body = body
+        self.else_body = else_body
 
 
 # Operator precedence
 PRECEDENCE = {
-    TokenType.PLUS: 1,
-    TokenType.MINUS: 1,
-    TokenType.MULTIPLY: 2,
-    TokenType.DIVIDE: 2,
+    TokenType.PLUS: 2,
+    TokenType.MINUS: 2,
+    TokenType.MULTIPLY: 3,
+    TokenType.DIVIDE: 3,
+    # Comparison
+    TokenType.EQUAL_EQUAL: 1,
+    TokenType.BANG_EQUAL: 1,
+    TokenType.LESS: 1,
+    TokenType.GREATER: 1,
+    TokenType.LESS_EQUAL: 1,
+    TokenType.GREATER_EQUAL: 1,
+    # Logical
+    TokenType.LOGICAL_AND: 0,
+    TokenType.LOGICAL_OR: 0,
 }
 
 
@@ -219,6 +231,7 @@ def parse(tokens):
         while True:
             token_type, token_value = current_token()
 
+            # Logical and comparison operators using precedence
             if token_type in (
                 TokenType.EQUAL_EQUAL,
                 TokenType.BANG_EQUAL,
@@ -227,9 +240,7 @@ def parse(tokens):
                 TokenType.LESS_EQUAL,
                 TokenType.GREATER_EQUAL,
             ):
-                # Handle comparison operators (precedence of 0)
-                # TODO: Move
-                prec = 0
+                prec = PRECEDENCE.get(token_type, 0)
                 if prec < min_prec:
                     break
 
@@ -249,10 +260,27 @@ def parse(tokens):
                 elif token_type == TokenType.GREATER_EQUAL:  # ">="
                     left = GreaterThanEqualNode(left, right)
                 continue
+
+            # Logical operators AND/OR with a higher precedence
+            if token_type in (TokenType.LOGICAL_AND, TokenType.LOGICAL_OR):
+                prec = PRECEDENCE.get(token_type, 0)
+                if prec < min_prec:
+                    break
+
+                op_token, _ = expect(token_type)
+                right = parse_unary()
+
+                if token_type == TokenType.LOGICAL_AND:
+                    left = BinaryOpNode(left, op_token, right)
+                elif token_type == TokenType.LOGICAL_OR:
+                    left = BinaryOpNode(left, op_token, right)
+
+                continue
+
             if token_type not in PRECEDENCE:
                 break
 
-            prec = PRECEDENCE[token_type]
+            prec = PRECEDENCE.get(token_type, 0)
             if prec < min_prec:
                 break
 
@@ -350,7 +378,20 @@ def parse(tokens):
         else:
             body.append(parse_statement())
 
-        return IfNode(condition, body)
+        # Check for the else block
+        else_body = None
+        if current_token()[0] == TokenType.KEYWORD and current_token()[1] == "else":
+            expect(TokenType.KEYWORD, "else")
+            if current_token()[0] == TokenType.LBRACE:
+                expect(TokenType.LBRACE)
+                else_body = []
+                while current_token()[0] != TokenType.RBRACE:
+                    else_body.append(parse_statement())
+                expect(TokenType.RBRACE)
+            else:
+                else_body = [parse_statement()]
+
+        return IfNode(condition, body, else_body)
 
     # "main"
     statements = []

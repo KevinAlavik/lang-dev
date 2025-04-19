@@ -29,6 +29,8 @@ class TokenType(Enum):
     BANG_EQUAL = auto()
     GREATER_EQUAL = auto()
     LESS_EQUAL = auto()
+    LOGICAL_AND = auto()
+    LOGICAL_OR = auto()
 
     STRING = auto()
     CHAR = auto()
@@ -38,7 +40,7 @@ class TokenType(Enum):
 
 
 # Keyword table for reserved keywords
-keyword_table = {"return", "fn", "var", "if"}
+keyword_table = {"return", "fn", "var", "if", "elif", "else"}
 
 # Token map for symbols and operators
 token_map = {
@@ -60,6 +62,8 @@ token_map = {
     ">=": TokenType.GREATER_EQUAL,
     "<=": TokenType.LESS_EQUAL,
     "==": TokenType.EQUAL_EQUAL,
+    "||": TokenType.LOGICAL_OR,
+    "&&": TokenType.LOGICAL_AND,
 }
 
 # Special table for special keywords like "True" and "False"

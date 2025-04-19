@@ -1,6 +1,5 @@
 import math
-import sys
-import traceback
+import pprint
 from parser import *
 from lexer import *
 
@@ -77,6 +76,7 @@ class Scope:
         if parent is None:
             self.vars["PI"] = math.pi
             self.functions["print"] = BuiltInFunction("print", Runtime.BuiltIn.print)
+            self.functions["input"] = BuiltInFunction("input", Runtime.BuiltIn.input)
             self.functions["str"] = BuiltInFunction("str", Runtime.BuiltIn.str)
             self.functions["int"] = BuiltInFunction("int", Runtime.BuiltIn.int)
             self.functions["float"] = BuiltInFunction("float", Runtime.BuiltIn.float)
@@ -113,8 +113,12 @@ class Runtime:
     class BuiltIn:
         @staticmethod
         def print(args):
-            print(" ".join(str(arg) for arg in args))
+            print("".join(str(arg) for arg in args))
             return None
+
+        @staticmethod
+        def input(args):
+            return input("".join(str(arg) for arg in args))
 
         @staticmethod
         def str(args):
@@ -150,7 +154,7 @@ class Runtime:
                 return float(node.value)
 
             if isinstance(node, BoolNode):
-                return bool(node.value)
+                return node.value
 
             elif isinstance(node, CharNode):
                 return chr(node.value)
@@ -175,8 +179,30 @@ class Runtime:
                     )
 
             elif isinstance(node, BinaryOpNode):
+                pprint.pp(node)
                 left_value = self.eval(node.left)
                 right_value = self.eval(node.right)
+                if node.op == TokenType.LOGICAL_AND:
+                    if not isinstance(left_value, bool) or not isinstance(
+                        right_value, bool
+                    ):
+                        raise RuntimeError(
+                            f"Unsupported operand types for '&&': {type(left_value)} and {type(right_value)}",
+                            node=node,
+                            scope=self.global_scope,
+                        )
+                    return left_value and right_value
+
+                elif node.op == TokenType.LOGICAL_OR:
+                    if not isinstance(left_value, bool) or not isinstance(
+                        right_value, bool
+                    ):
+                        raise RuntimeError(
+                            f"Unsupported operand types for '||': {type(left_value)} and {type(right_value)}",
+                            node=node,
+                            scope=self.global_scope,
+                        )
+                    return left_value or right_value
 
                 if node.op == TokenType.PLUS:
                     if isinstance(left_value, str) and isinstance(right_value, str):
@@ -317,9 +343,17 @@ class Runtime:
 
             elif isinstance(node, IfNode):
                 condition_value = self.eval(node.condition)
-                print(condition_value)
-                if condition_value == True:
+                if condition_value:
+                    # Execute the 'if' body if the condition is True
                     for statement in node.body:
+                        result = self.eval(statement)
+                        if isinstance(statement, ReturnNode):
+                            # If a return statement is encountered, exit early
+                            if self.global_scope.parent is None:
+                                exit(result)
+                            return result
+                elif node.else_body:  # If there's an 'else' block, execute it
+                    for statement in node.else_body:
                         result = self.eval(statement)
                         if isinstance(statement, ReturnNode):
                             # If a return statement is encountered, exit early

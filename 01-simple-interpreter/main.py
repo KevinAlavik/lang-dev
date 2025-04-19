@@ -10,7 +10,7 @@ def main(file_path, src):
     tokens = lexer.tokenize(src)
     # pprint.pp(tokens)
     ast_tree = parser.parse(tokens)
-    pprint.pp(ast_tree)
+    # pprint.pp(ast_tree)
     global_scope = runtime.Scope()
     r = runtime.Runtime(global_scope)
 
