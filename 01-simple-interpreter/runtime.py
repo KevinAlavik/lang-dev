@@ -84,31 +84,27 @@ class Scope:
             self.functions["exit"] = BuiltInFunction("exit", Runtime.BuiltIn.exit)
 
     def get_var(self, name):
-        if name in self.vars:
-            return self.vars[name]
-        elif name in self.functions:
-            return self.functions[name]
-        elif self.parent:
-            return self.parent.get_var(name)
+        # Direct dictionary lookup avoids recursion
+        scope = self
+        while scope:
+            if name in scope.vars:
+                return scope.vars[name]
+            elif name in scope.functions:
+                return scope.functions[name]
+            scope = scope.parent
         raise RuntimeError(f"Undefined variable or function:  {name}", scope=self)
 
     def set_var(self, name, value):
         self.vars[name] = value
 
     def assign_var(self, name, value):
-        if name in self.vars:
-            self.vars[name] = value
-        elif self.parent:
-            self.parent.assign_var(name, value)
-        else:
-            raise RuntimeError(f"Assignment to undefined variable: {name}", scope=self)
-
-    def get_function(self, name):
-        if name in self.functions:
-            return self.functions[name]
-        elif self.parent:
-            return self.parent.get_function(name)
-        raise RuntimeError(f"Unknown function: {name}", scope=self)
+        scope = self
+        while scope:
+            if name in scope.vars:
+                scope.vars[name] = value
+                return
+            scope = scope.parent
+        raise RuntimeError(f"Assignment to undefined variable: {name}", scope=self)
 
 
 class Runtime:
@@ -160,344 +156,195 @@ class Runtime:
         self.global_scope = global_scope
 
     def eval(self, node):
-        try:
-            if isinstance(node, NumberNode):
-                return int(node.value)
+        # Use a dictionary to store evaluated nodes for faster lookup
+        node_type_handlers = {
+            NumberNode: lambda n: int(n.value),
+            FloatNumberNode: lambda n: float(n.value),
+            BoolNode: lambda n: n.value,
+            CharNode: lambda n: chr(n.value),
+            StringNode: lambda n: str(n.value),
+            IdentifierNode: self.eval_identifier,
+            ArrayNode: self.eval_array,
+            ArrayAccessNode: self.eval_array_access,
+            ArrayAssignmentNode: self.eval_array_assignment,
+            UnaryOpNode: self.eval_unary_op,
+            BinaryOpNode: self.eval_binary_op,
+            FunctionCallNode: self.eval_function_call,
+            FunctionDeclarationNode: self.eval_function_declaration,
+            ReturnNode: self.eval_return,
+            VariableDeclarationNode: self.eval_var_declaration,
+            VariableAssignmentNode: self.eval_var_assignment,
+            IfNode: self.eval_if,
+            WhileNode: self.eval_while,
+        }
 
-            if isinstance(node, FloatNumberNode):
-                return float(node.value)
+        handler = node_type_handlers.get(type(node))
+        if handler:
+            return handler(node)
+        raise RuntimeError(
+            f"Unsupported node type: {type(node)}", node=node, scope=self.global_scope
+        )
 
-            if isinstance(node, BoolNode):
-                return node.value
+    def eval_identifier(self, node):
+        return self.global_scope.get_var(node.name)
 
-            elif isinstance(node, CharNode):
-                return chr(node.value)
+    def eval_array(self, node):
+        return [self.eval(element) for element in node.elements]
 
-            elif isinstance(node, StringNode):
-                return str(node.value)
+    def eval_array_access(self, node):
+        array_value = self.eval(node.array)
+        index_value = self.eval(node.index)
 
-            elif isinstance(node, IdentifierNode):
-                return self.global_scope.get_var(node.name)
+        if not isinstance(array_value, list):
+            raise RuntimeError(
+                f"Expected array, got {type(array_value)}",
+                node=node,
+                scope=self.global_scope,
+            )
 
-            elif isinstance(node, ArrayNode):
-                return [self.eval(element) for element in node.elements]
+        if not isinstance(index_value, int):
+            raise RuntimeError(
+                f"Array index must be an integer, got {type(index_value)}",
+                node=node,
+                scope=self.global_scope,
+            )
 
-            elif isinstance(node, ArrayAccessNode):
-                array_value = self.eval(node.array)  # Evaluate the array
-                index_value = self.eval(node.index)  # Evaluate the index
+        if index_value < 0 or index_value >= len(array_value):
+            raise RuntimeError(
+                f"Array index out of bounds: {index_value}",
+                node=node,
+                scope=self.global_scope,
+            )
 
-                if not isinstance(array_value, list):
-                    raise RuntimeError(
-                        f"Expected array, got {type(array_value)}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
+        return array_value[index_value]
 
-                if not isinstance(index_value, int):
-                    raise RuntimeError(
-                        f"Array index must be an integer, got {type(index_value)}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
+    def eval_array_assignment(self, node):
+        array_value = self.eval(node.array)
+        index_value = self.eval(node.index)
+        assigned_value = self.eval(node.value)
 
-                if index_value < 0 or index_value >= len(array_value):
-                    raise RuntimeError(
-                        f"Array index out of bounds: {index_value}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
+        if not isinstance(array_value, list):
+            raise RuntimeError(
+                f"Expected array, got {type(array_value)}",
+                node=node,
+                scope=self.global_scope,
+            )
 
-                return array_value[index_value]
+        if not isinstance(index_value, int):
+            raise RuntimeError(
+                f"Array index must be an integer, got {type(index_value)}",
+                node=node,
+                scope=self.global_scope,
+            )
 
-            elif isinstance(node, ArrayAssignmentNode):
-                array_value = self.eval(node.array)  # Evaluate the array
-                index_value = self.eval(node.index)  # Evaluate the index
-                assigned_value = self.eval(node.value)  # Evaluate the value to assign
+        if index_value < 0 or index_value >= len(array_value):
+            raise RuntimeError(
+                f"Array index out of bounds: {index_value}",
+                node=node,
+                scope=self.global_scope,
+            )
 
-                if not isinstance(array_value, list):
-                    raise RuntimeError(
-                        f"Expected array, got {type(array_value)}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
+        array_value[index_value] = assigned_value
+        return assigned_value
 
-                if not isinstance(index_value, int):
-                    raise RuntimeError(
-                        f"Array index must be an integer, got {type(index_value)}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
+    def eval_unary_op(self, node):
+        operand_value = self.eval(node.expr)
+        if node.op == TokenType.PLUS:
+            return +operand_value
+        elif node.op == TokenType.MINUS:
+            return -operand_value
+        raise RuntimeError(
+            f"Unsupported unary operation: {node.op}",
+            node=node,
+            scope=self.global_scope,
+        )
 
-                if index_value < 0 or index_value >= len(array_value):
-                    raise RuntimeError(
-                        f"Array index out of bounds: {index_value}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
+    def eval_binary_op(self, node):
+        left_value = self.eval(node.left)
+        right_value = self.eval(node.right)
 
-                array_value[index_value] = assigned_value
-                return assigned_value
+        operations = {
+            TokenType.LOGICAL_AND: lambda: left_value and right_value,
+            TokenType.LOGICAL_OR: lambda: left_value or right_value,
+            TokenType.EQUAL_EQUAL: lambda: left_value == right_value,
+            TokenType.BANG_EQUAL: lambda: left_value != right_value,
+            TokenType.GREATER: lambda: left_value > right_value,
+            TokenType.LESS: lambda: left_value < right_value,
+            TokenType.GREATER_EQUAL: lambda: left_value >= right_value,
+            TokenType.LESS_EQUAL: lambda: left_value <= right_value,
+            TokenType.PLUS: lambda: left_value + right_value,
+            TokenType.MINUS: lambda: left_value - right_value,
+            TokenType.MULTIPLY: lambda: left_value * right_value,
+            TokenType.DIVIDE: lambda: left_value / right_value,
+            TokenType.MODULO: lambda: left_value % right_value,
+            TokenType.BIT_OR: lambda: left_value | right_value,
+            TokenType.BIT_XOR: lambda: left_value ^ right_value,
+            TokenType.BIT_AND: lambda: left_value & right_value,
+            TokenType.BIT_LSH: lambda: left_value << right_value,
+            TokenType.BIT_RSH: lambda: left_value >> right_value,
+        }
 
-            elif isinstance(node, UnaryOpNode):
-                operand_value = self.eval(node.expr)
-                if node.op == TokenType.PLUS:
-                    return +operand_value
-                elif node.op == TokenType.MINUS:
-                    return -operand_value
-                else:
-                    raise RuntimeError(
-                        f"Unsupported unary operation: {node.op}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
+        if node.op == TokenType.PLUS_EQUAL:
+            left_value += right_value
+            self.global_scope.assign_var(node.left.name, left_value)
+            return left_value
+        elif node.op == TokenType.MINUS_EQUAL:
+            left_value -= right_value
+            self.global_scope.assign_var(node.left.name, left_value)
+            return left_value
+        op_func = operations.get(node.op)
 
-            elif isinstance(node, BinaryOpNode):
-                left_value = self.eval(node.left)
-                right_value = self.eval(node.right)
+        if op_func:
+            return op_func()
 
-                if node.op == TokenType.LOGICAL_AND:
-                    if not isinstance(left_value, bool) or not isinstance(
-                        right_value, bool
-                    ):
-                        raise RuntimeError(
-                            f"Unsupported operand types for '&&': {type(left_value)} and {type(right_value)}",
-                            node=node,
-                            scope=self.global_scope,
-                        )
-                    return left_value and right_value
+        raise RuntimeError(
+            f"Unsupported binary operation: {node.op}",
+            node=node,
+            scope=self.global_scope,
+        )
 
-                elif node.op == TokenType.LOGICAL_OR:
-                    if not isinstance(left_value, bool) or not isinstance(
-                        right_value, bool
-                    ):
-                        raise RuntimeError(
-                            f"Unsupported operand types for '||': {type(left_value)} and {type(right_value)}",
-                            node=node,
-                            scope=self.global_scope,
-                        )
-                    return left_value or right_value
+    def eval_function_call(self, node):
+        function = self.global_scope.get_var(node.name)
+        if not callable(function):
+            raise RuntimeError(
+                f"Attempted to call non-function: {node.name}",
+                node=node,
+                scope=self.global_scope,
+            )
+        args = [self.eval(arg) for arg in node.arguments]
+        return function(args)
 
-                elif node.op == TokenType.EQUAL_EQUAL:
-                    return left_value == right_value
+    def eval_function_declaration(self, node):
+        self.global_scope.set_var(
+            node.name, UserFunction(node.name, node, self.global_scope)
+        )
+        return None
 
-                elif node.op == TokenType.BANG_EQUAL:
-                    return left_value != right_value
+    def eval_var_declaration(self, node):
+        value = self.eval(node.value)
+        self.global_scope.set_var(node.name, value)
+        return value
 
-                elif node.op == TokenType.GREATER:
-                    return left_value > right_value
+    def eval_var_assignment(self, node):
+        value = self.eval(node.value)
+        self.global_scope.assign_var(node.name, value)
+        return value
 
-                elif node.op == TokenType.LESS:
-                    return left_value < right_value
+    def eval_return(self, node):
+        return self.eval(node.value) if node.value else None
 
-                elif node.op == TokenType.GREATER_EQUAL:
-                    return left_value >= right_value
+    def eval_if(self, node):
+        condition = self.eval(node.condition)
+        if condition:
+            for stmt in node.body:
+                self.eval(stmt)
 
-                elif node.op == TokenType.LESS_EQUAL:
-                    return left_value <= right_value
-
-                # Handle addition (+)
-                elif node.op == TokenType.PLUS:
-                    return left_value + right_value
-
-                # Handle subtraction (-)
-                elif node.op == TokenType.MINUS:
-                    return left_value - right_value
-
-                # Handle multiplication (*)
-                elif node.op == TokenType.MULTIPLY:
-                    return left_value * right_value
-
-                # Handle division (/)
-                elif node.op == TokenType.DIVIDE:
-                    if right_value == 0:
-                        raise RuntimeError(
-                            "Division by zero", node=node, scope=self.global_scope
-                        )
-                    return left_value / right_value
-
-                # Handle Addition Assignment (+=)
-                elif node.op == TokenType.PLUS_EQUAL:
-                    if isinstance(left_value, (int, float)):
-                        new_value = left_value + right_value
-                        self.global_scope.assign_var(node.left.name, new_value)
-                        return new_value
-                    else:
-                        raise RuntimeError(
-                            f"Unsupported type for '+=': {type(left_value)}",
-                            node=node,
-                            scope=self.global_scope,
-                        )
-
-                # Handle Subtraction Assignment (-=)
-                elif node.op == TokenType.MINUS_EQUAL:
-                    if isinstance(left_value, (int, float)):
-                        new_value = left_value - right_value
-                        self.global_scope.assign_var(node.left.name, new_value)
-                        return new_value
-                    else:
-                        raise RuntimeError(
-                            f"Unsupported type for '-=': {type(left_value)}",
-                            node=node,
-                            scope=self.global_scope,
-                        )
-
-                # Handle modulo (%)
-                elif node.op == TokenType.MODULO:
-                    return left_value % right_value
-
-                # Handle bitwise OR (|)
-                elif node.op == TokenType.BIT_OR:
-                    return left_value | right_value
-
-                # Handle bitwise XOR (^)
-                elif node.op == TokenType.BIT_XOR:
-                    return left_value ^ right_value
-
-                # Handle bitwise AND (&)
-                elif node.op == TokenType.BIT_AND:
-                    return left_value & right_value
-
-                # Handle bitwise NOT (~)
-                elif node.op == TokenType.BIT_NOT:
-                    return left_value & right_value
-
-                # Handle bitwise Left Shift (<<)
-                elif node.op == TokenType.BIT_LSH:
-                    return left_value << right_value
-
-                # Handle bitwise Right Shift (>>)
-                elif node.op == TokenType.BIT_RSH:
-                    return left_value >> right_value
-
-                else:
-                    raise RuntimeError(
-                        f"Unsupported binary operation: {node.op}",
-                        node=node,
-                        scope=self.global_scope,
-                    )
-
-            elif isinstance(node, FunctionCallNode):
-                func = self.global_scope.get_var(node.name)
-                if not callable(func):
-                    raise RuntimeError(
-                        f"'{node.name}' is not a function",
-                        node=node,
-                        scope=self.global_scope,
-                    )
-                evaluated_args = [self.eval(arg) for arg in node.argument]
-                return func(evaluated_args)
-
-            elif isinstance(node, FunctionDeclarationNode):
-                func_obj = UserFunction(
-                    node.name, node, defining_scope=self.global_scope
-                )
-                self.global_scope.functions[node.name] = func_obj
-                return None
-
-            elif isinstance(node, ReturnNode):
-                return self.eval(node.return_value)
-
-            elif isinstance(node, VariableDeclarationNode):
-                value = self.eval(node.value)
-                self.global_scope.set_var(node.name, value)
-                return value
-
-            elif isinstance(node, VariableAssignmentNode):
-                value = self.eval(node.value)
-                self.global_scope.assign_var(node.name, value)
-                return value
-
-            elif isinstance(node, IfNode):
-                condition_value = self.eval(node.condition)
-                if condition_value:
-                    for statement in node.body:
-                        result = self.eval(statement)
-                        if isinstance(statement, ReturnNode):
-                            return result
-                elif node.else_body:
-                    for statement in node.else_body:
-                        result = self.eval(statement)
-                        if isinstance(statement, ReturnNode):
-                            return result
-                return None
-
-            elif isinstance(node, WhileNode):
-                while self.eval(node.condition):
-                    for statement in node.body:
-                        result = self.eval(statement)
-                        if isinstance(statement, ReturnNode):
-                            return result
-                return None
-
-            elif isinstance(node, FunctionCallNode):
-                func = self.global_scope.get_var(node.name)
-                if not callable(func):
-                    raise RuntimeError(
-                        f"'{node.name}' is not a function",
-                        node=node,
-                        scope=self.global_scope,
-                    )
-                evaluated_args = [self.eval(arg) for arg in node.argument]
-                return func(evaluated_args)
-
-            elif isinstance(node, FunctionDeclarationNode):
-                func_obj = UserFunction(
-                    node.name, node, defining_scope=self.global_scope
-                )
-                self.global_scope.functions[node.name] = func_obj
-                return None
-
-            elif isinstance(node, ReturnNode):
-                return self.eval(node.return_value)
-
-            elif isinstance(node, VariableDeclarationNode):
-                value = self.eval(node.value)
-                self.global_scope.set_var(node.name, value)
-                return value
-
-            elif isinstance(node, VariableAssignmentNode):
-                value = self.eval(node.value)
-                self.global_scope.assign_var(node.name, value)
-                return value
-
-            elif isinstance(node, IfNode):
-                condition_value = self.eval(node.condition)
-                if condition_value:
-                    # Execute the 'if' body if the condition is True
-                    for statement in node.body:
-                        result = self.eval(statement)
-                        if isinstance(statement, ReturnNode):
-                            # If a return statement is encountered, exit early
-                            if self.global_scope.parent is None:
-                                exit(result)
-                            return result
-                elif node.else_body:  # If there's an 'else' block, execute it
-                    for statement in node.else_body:
-                        result = self.eval(statement)
-                        if isinstance(statement, ReturnNode):
-                            # If a return statement is encountered, exit early
-                            if self.global_scope.parent is None:
-                                exit(result)
-                            return result
-                return None
-
-            elif node is None:
-                return None
-
-            else:
-                raise RuntimeError(
-                    f"Unsupported AST node: {node}", node=node, scope=self.global_scope
-                )
-
-        except RuntimeError as e:
-            print(f"\033[91m{str(e)}\033[0m")
-
-        except Exception as e:
-            print("\033[91mUnexpected Error:\033[0m", e)
-            exit(1)
+    def eval_while(self, node):
+        while self.eval(node.condition):
+            for stmt in node.body:
+                self.eval(stmt)
 
     def run(self, statements):
         for statement in statements:
             result = self.eval(statement)
             return result
-        return 0

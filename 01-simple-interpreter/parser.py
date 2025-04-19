@@ -46,9 +46,9 @@ class BinaryOpNode(ASTNode):
 
 
 class FunctionCallNode(ASTNode):
-    def __init__(self, name, argument):
+    def __init__(self, name, arguments):
         self.name = name
-        self.argument = argument
+        self.arguments = arguments
 
 
 class IdentifierNode(ASTNode):
@@ -58,7 +58,7 @@ class IdentifierNode(ASTNode):
 
 class ReturnNode(ASTNode):
     def __init__(self, return_value):
-        self.return_value = return_value
+        self.value = return_value
 
 
 class VariableDeclarationNode(ASTNode):

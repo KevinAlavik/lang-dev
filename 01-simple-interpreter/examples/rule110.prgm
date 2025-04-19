@@ -1,57 +1,62 @@
-var width = 21
-var generations = 20
-var current_gen = [0] * width
-var next_gen = [0] * width
+var ROW_SIZE = 53
+var ITTER = 100
 
-current_gen at 10 = 1  // Set the initial condition: a single "1" in the middle
+var O = 0
+var I = 1
 
-fn print_generation(generation) {
-    var output = ""
-    var i = 0
-    while(i < len(generation)) {
-        if (generation[i] == 1) {
-            output += "1"
-        } else {
-            output += "0"
-        }
-        i += 1
-    }
-    print(output)
+fn pattern(A, B, C) {
+    return (A << 2) | (B << 1) | C
 }
 
-fn rule110(left, center, right) {
-    // Rule 110 logic: 1 if (left XOR (center OR right))
-    return left ^ (center | right)
-}
+var patterns = [0, 0, 0, 0, 0, 0, 0, 0]
+patterns at pattern(O, O, O) = O
+patterns at pattern(O, O, I)  = I
+patterns at pattern(O, I, O)  = I
+patterns at pattern(O, I, I)  = I
+patterns at pattern(I, O, O)  = O
+patterns at pattern(I, O, I)  = I
+patterns at pattern(I, I, O)  = I
+patterns at pattern(I, I, I)  = O
 
-fn generate_next(current_gen) {
+fn next_row(prev) {
+    var next = [0] * ROW_SIZE
     var i = 1
-    while(i < width - 1) {
-        var left = current_gen[i - 1]
-        var center = current_gen[i]
-        var right = current_gen[i + 1]
-
-        next_gen at i = rule110(left, center, right)  // Using "at" for assignment
+    while(i < ROW_SIZE - 1) {
+        next at i = patterns[pattern(prev[i - 1], prev[i], prev[(i + 1) % ROW_SIZE])]
         i += 1
     }
-    next_gen at 0 = current_gen[0]  // First cell stays the same
-    next_gen at (width - 1) = current_gen[width - 1]  // Last cell stays the same
+    return next
 }
 
-fn main() {
-    print("Initial generation:")
-    print_generation(current_gen)
+var cell_image = [' ', '*']
 
-    var generation = 0
-    while(generation < generations) {
-        print("\nGeneration " + str(generation + 1) + ":")
-        generate_next(current_gen)
-        print_generation(next_gen)
-
-        // Move to the next generation
-        current_gen = next_gen
-        next_gen = [0] * width  // Reset next_gen
-        generation += 1
+fn print_row(r) {
+    print("|")
+    var i = 0
+    while(i < ROW_SIZE) {
+        print(cell_image[r[i]])
+        i += 1
+    }
+    print("|")
 }
 
-main()
+fn random_row() {
+    var out = [0] * ROW_SIZE
+    var i = 0
+    while(i < ROW_SIZE) {
+        out at i = rand() % 2
+        i += 1
+    }
+    return out
+}
+
+
+print("epic")
+
+var next = random_row()
+var i = 0
+while(i < ITTER) {
+    print_row(next)
+    next = next_row(next)
+    i += 1
+}

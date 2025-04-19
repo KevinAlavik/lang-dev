@@ -8,5 +8,5 @@ var j = len(names)
 
 while(i < j) {
 	print(names[i])
-	i = i + 1
+	i += 1
 }

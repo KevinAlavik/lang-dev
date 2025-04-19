@@ -8,9 +8,7 @@ import pprint
 
 def eval_input(src, global_scope):
     tokens = lexer.tokenize(src)
-    # pprint.pp(tokens)
     ast_tree = parser.parse(tokens)
-    # pprint.pp(ast_tree)
     r = runtime.Runtime(global_scope)
 
     try:
@@ -21,12 +19,21 @@ def eval_input(src, global_scope):
         return None
 
 
+def handle_multiline_input():
+    multiline_buffer = ""
+    while True:
+        src = input("... ")
+        multiline_buffer += src + "\n"
+        if src.strip().endswith("}"):
+            return multiline_buffer
+        if not src:
+            return multiline_buffer
+
+
 def main(file_path=None, src=None):
     if file_path and src:
         tokens = lexer.tokenize(src)
-        # pprint.pp(tokens)
         ast_tree = parser.parse(tokens)
-        # pprint.pp(ast_tree)
         global_scope = runtime.Scope()
         r = runtime.Runtime(global_scope)
 
@@ -46,6 +53,9 @@ def main(file_path=None, src=None):
                 if src.lower() == "exit":
                     break
 
+                if "{" in src:
+                    src += handle_multiline_input()
+
                 result = eval_input(src, global_scope)
 
                 if result is not None:
@@ -58,7 +68,7 @@ def main(file_path=None, src=None):
 
 
 def bootstrap():
-    if len(sys.argv) >= 2:
+    if len(sys.argv) == 2:
         file_path = sys.argv[1]
         try:
             with open(file_path, "r") as file:

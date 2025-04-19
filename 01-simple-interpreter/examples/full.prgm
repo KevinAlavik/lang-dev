@@ -33,8 +33,7 @@ fn main() {
     // Loop through a series of tests to check global and array functionality
     print("Testing global decrement:")
     while(global != 0) {
-        if(global == 1)
-            print_global()
+        print_global()
         global -= 1
     }
 
