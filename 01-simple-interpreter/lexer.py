@@ -1,11 +1,10 @@
 from enum import Enum, auto
 
-from enum import Enum, auto
-
 
 class TokenType(Enum):
     NUMBER = auto()
     FLOAT = auto()
+    BOOL = auto()
 
     KEYWORD = auto()
     IDENTIFIER = auto()
@@ -26,6 +25,10 @@ class TokenType(Enum):
 
     GREATER = auto()
     LESS = auto()
+    EQUAL_EQUAL = auto()
+    BANG_EQUAL = auto()
+    GREATER_EQUAL = auto()
+    LESS_EQUAL = auto()
 
     STRING = auto()
     CHAR = auto()
@@ -34,8 +37,10 @@ class TokenType(Enum):
         return self.name
 
 
+# Keyword table for reserved keywords
 keyword_table = {"return", "fn", "var", "if"}
 
+# Token map for symbols and operators
 token_map = {
     "(": TokenType.LPAREN,
     ")": TokenType.RPAREN,
@@ -51,6 +56,16 @@ token_map = {
     "=": TokenType.EQUAL,
     ">": TokenType.GREATER,
     "<": TokenType.LESS,
+    "!=": TokenType.BANG_EQUAL,
+    ">=": TokenType.GREATER_EQUAL,
+    "<=": TokenType.LESS_EQUAL,
+    "==": TokenType.EQUAL_EQUAL,
+}
+
+# Special table for special keywords like "True" and "False"
+special_table = {
+    "True": TokenType.BOOL,
+    "False": TokenType.BOOL,
 }
 
 
@@ -122,6 +137,8 @@ def tokenize(input_expression):
             word = input_expression[start_pos:pos]
             if word in keyword_table:
                 tokens.append((TokenType.KEYWORD, word))
+            elif word in special_table:
+                tokens.append((special_table[word], word))
             else:
                 tokens.append((TokenType.IDENTIFIER, word))
             continue
@@ -152,7 +169,15 @@ def tokenize(input_expression):
                 tokens.append((TokenType.NUMBER, int(number)))
             continue
 
-        # Tokenize symbols
+        # Check for two-character operators like '!=' and '>='
+        if pos + 1 < length:
+            two_char_operator = input_expression[pos : pos + 2]
+            if two_char_operator in token_map:
+                tokens.append((token_map[two_char_operator], two_char_operator))
+                pos += 2
+                continue
+
+        # Tokenize symbols (single characters)
         if current_char in token_map:
             tokens.append((token_map[current_char], current_char))
             pos += 1

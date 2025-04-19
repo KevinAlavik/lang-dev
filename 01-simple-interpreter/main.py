@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 import sys
 import lexer
-import ast
+import parser
 import runtime
+import pprint
 
 
 def main(file_path, src):
     tokens = lexer.tokenize(src)
-    ast_tree = ast.parse(tokens)
+    # pprint.pp(tokens)
+    ast_tree = parser.parse(tokens)
+    # pprint.pp(ast_tree)
     global_scope = runtime.Scope()
     r = runtime.Runtime(global_scope)
 
@@ -21,7 +24,7 @@ def main(file_path, src):
 
 def bootstrap():
     if len(sys.argv) < 2:
-        print("Usage: python3 script.py <file_path>")
+        print("Usage: python3 main.py <file_path>")
         sys.exit(1)
 
     file_path = sys.argv[1]

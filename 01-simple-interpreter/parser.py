@@ -17,6 +17,11 @@ class FloatNumberNode(ASTNode):
         self.value = float(value)
 
 
+class BoolNode(ASTNode):
+    def __init__(self, value):
+        self.value = bool(value)
+
+
 class CharNode(ASTNode):
     def __init__(self, value):
         self.value = value
@@ -75,6 +80,43 @@ class FunctionDeclarationNode(ASTNode):
         self.body = body
 
 
+# Comparison AST Nodes
+class LessThanNode(ASTNode):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+
+class GreaterThanNode(ASTNode):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+
+class LessThanEqualNode(ASTNode):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+
+class GreaterThanEqualNode(ASTNode):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+
+class EqualNode(ASTNode):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+
+class NotEqualNode(ASTNode):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+
 # Operator precedence
 PRECEDENCE = {
     TokenType.PLUS: 1,
@@ -105,9 +147,7 @@ def parse(tokens):
         if token_type_actual == token_type and (
             token_value is None or token_value_actual == token_value
         ):
-            token = current_token()
-            pos += 1
-            return token
+            return eat()
 
         if optional:
             return None
@@ -125,6 +165,10 @@ def parse(tokens):
         if token_type == TokenType.FLOAT:
             expect(TokenType.FLOAT)
             return FloatNumberNode(value)
+
+        if token_type == TokenType.BOOL:
+            expect(TokenType.BOOL)
+            return BoolNode(value)
 
         elif token_type == TokenType.CHAR:
             expect(TokenType.CHAR)
@@ -168,7 +212,38 @@ def parse(tokens):
         left = parse_unary()
 
         while True:
-            token_type, _ = current_token()
+            token_type, token_value = current_token()
+
+            if token_type in (
+                TokenType.EQUAL_EQUAL,
+                TokenType.BANG_EQUAL,
+                TokenType.LESS,
+                TokenType.GREATER,
+                TokenType.LESS_EQUAL,
+                TokenType.GREATER_EQUAL,
+            ):
+                # Handle comparison operators (precedence of 0)
+                # TODO: Move
+                prec = 0
+                if prec < min_prec:
+                    break
+
+                op_token, _ = expect(token_type)
+                right = parse_unary()
+
+                if token_type == TokenType.EQUAL_EQUAL:  # "=="
+                    left = EqualNode(left, right)
+                elif token_type == TokenType.BANG_EQUAL:  # "!="
+                    left = NotEqualNode(left, right)
+                elif token_type == TokenType.LESS:  # "<"
+                    left = LessThanNode(left, right)
+                elif token_type == TokenType.GREATER:  # ">"
+                    left = GreaterThanNode(left, right)
+                elif token_type == TokenType.LESS_EQUAL:  # "<="
+                    left = LessThanEqualNode(left, right)
+                elif token_type == TokenType.GREATER_EQUAL:  # ">="
+                    left = GreaterThanEqualNode(left, right)
+                continue
             if token_type not in PRECEDENCE:
                 break
 
@@ -206,7 +281,7 @@ def parse(tokens):
 
         if token_type == TokenType.IDENTIFIER and next_token()[0] == TokenType.EQUAL:
             name = value
-            eat()  # eat identifier
+            eat()  # Eat identifier
             expect(TokenType.EQUAL)
             expr = parse_expression()
             return VariableAssignmentNode(name, expr)
@@ -249,7 +324,6 @@ def parse(tokens):
             body.append(parse_statement())
 
         expect(TokenType.RBRACE)
-
         return FunctionDeclarationNode(name, arguments, body)
 
     statements = []

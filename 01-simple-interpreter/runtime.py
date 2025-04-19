@@ -1,7 +1,7 @@
 import math
 import sys
 import traceback
-from ast import *
+from parser import *
 from lexer import *
 
 
@@ -149,6 +149,9 @@ class Runtime:
             if isinstance(node, FloatNumberNode):
                 return node.value
 
+            if isinstance(node, BoolNode):
+                return node.value
+
             elif isinstance(node, CharNode):
                 return node.value
 
@@ -231,6 +234,24 @@ class Runtime:
                 value = self.eval(node.value)
                 self.global_scope.assign_var(node.name, value)
                 return value
+
+            elif isinstance(node, LessThanNode):
+                return self.eval(node.left) < self.eval(node.right)
+
+            elif isinstance(node, GreaterThanNode):
+                return self.eval(node.left) > self.eval(node.right)
+
+            elif isinstance(node, LessThanEqualNode):
+                return self.eval(node.left) >= self.eval(node.right)
+
+            elif isinstance(node, GreaterThanEqualNode):
+                return self.eval(node.left) <= self.eval(node.right)
+
+            elif isinstance(node, EqualNode):
+                return self.eval(node.left) == self.eval(node.right)
+
+            elif isinstance(node, NotEqualNode):
+                return self.eval(node.left) != self.eval(node.right)
 
             elif node is None:
                 return None
