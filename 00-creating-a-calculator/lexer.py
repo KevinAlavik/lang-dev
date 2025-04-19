@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+
 class TokenType(Enum):
     NUMBER = auto()
     IDENTIFIER = auto()
@@ -13,14 +14,16 @@ class TokenType(Enum):
     def __str__(self):
         return self.name
 
+
 token_map = {
-    '+': TokenType.PLUS,
-    '-': TokenType.MINUS,
-    '*': TokenType.MULTIPLY,
-    '/': TokenType.DIVIDE,
-    '(': TokenType.LPAREN,
-    ')': TokenType.RPAREN,
+    "+": TokenType.PLUS,
+    "-": TokenType.MINUS,
+    "*": TokenType.MULTIPLY,
+    "/": TokenType.DIVIDE,
+    "(": TokenType.LPAREN,
+    ")": TokenType.RPAREN,
 }
+
 
 def tokenize(input_expression):
     tokens = []
@@ -42,19 +45,23 @@ def tokenize(input_expression):
             continue
 
         # Numbers (float or int)
-        elif current_char.isdigit() or current_char == '.':
-            number = ''
+        elif current_char.isdigit() or current_char == ".":
+            number = ""
             dot_seen = False
 
-            while pos < length and (input_expression[pos].isdigit() or input_expression[pos] == '.'):
-                if input_expression[pos] == '.':
+            while pos < length and (
+                input_expression[pos].isdigit() or input_expression[pos] == "."
+            ):
+                if input_expression[pos] == ".":
                     if dot_seen:
-                        raise ValueError("Invalid number format: multiple decimal points")
+                        raise ValueError(
+                            "Invalid number format: multiple decimal points"
+                        )
                     dot_seen = True
                 number += input_expression[pos]
                 pos += 1
 
-            if number == '.' or number.endswith('.'):
+            if number == "." or number.endswith("."):
                 raise ValueError(f"Invalid number format: '{number}'")
 
             tokens.append((TokenType.NUMBER, float(number)))
@@ -62,8 +69,10 @@ def tokenize(input_expression):
 
         # Identifiers
         elif current_char.isalpha():
-            ident = ''
-            while pos < length and (input_expression[pos].isalnum() or input_expression[pos] == '_'):
+            ident = ""
+            while pos < length and (
+                input_expression[pos].isalnum() or input_expression[pos] == "_"
+            ):
                 ident += input_expression[pos]
                 pos += 1
 

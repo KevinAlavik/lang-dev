@@ -1,18 +1,22 @@
 from lexer import TokenType
 import math
 
+
 class ASTNode:
     def __repr__(self):
         return f"{self.__class__.__name__}({', '.join(f'{k}={v!r}' for k, v in self.__dict__.items())})"
+
 
 class NumberNode(ASTNode):
     def __init__(self, value):
         self.value = float(value)
 
+
 class UnaryOpNode(ASTNode):
     def __init__(self, op_token, expr):
         self.op = op_token
         self.expr = expr
+
 
 class BinaryOpNode(ASTNode):
     def __init__(self, left, op_token, right):
@@ -20,14 +24,17 @@ class BinaryOpNode(ASTNode):
         self.op = op_token
         self.right = right
 
+
 class FunctionCallNode(ASTNode):
     def __init__(self, name, argument):
         self.name = name
         self.argument = argument
 
+
 class IdentifierNode(ASTNode):
     def __init__(self, name):
         self.name = name
+
 
 def pretty_print(node, indent="", is_last=True):
     marker = "└── " if is_last else "├── "
@@ -48,6 +55,7 @@ def pretty_print(node, indent="", is_last=True):
     else:
         print(f"{indent}{marker}UnknownNode({node})")
 
+
 def compact_print(node):
     if isinstance(node, NumberNode):
         return str(node.value)
@@ -62,12 +70,14 @@ def compact_print(node):
     else:
         return f"Unknown({node})"
 
+
 PRECEDENCE = {
     TokenType.PLUS: 1,
     TokenType.MINUS: 1,
     TokenType.MULTIPLY: 2,
     TokenType.DIVIDE: 2,
 }
+
 
 def parse(tokens):
     pos = 0

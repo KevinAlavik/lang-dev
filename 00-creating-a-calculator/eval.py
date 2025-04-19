@@ -28,8 +28,9 @@ identifier_table = {
     "E": math.e,
     "TAU": math.tau,
     "INF": math.inf,
-    "NAN": math.nan
+    "NAN": math.nan,
 }
+
 
 def evaluate(node):
     if isinstance(node, ast.NumberNode):
