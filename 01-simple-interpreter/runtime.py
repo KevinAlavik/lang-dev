@@ -1,6 +1,7 @@
 # Simple language runtime / evaluator
 from ast import *
 from lexer import *
+import math
 
 
 class RuntimeError(Exception):
@@ -9,7 +10,7 @@ class RuntimeError(Exception):
 
 class Interpreter:
     def __init__(self):
-        self.vars = {}
+        self.vars = {"PI": math.pi}
         self.functions = {
             "print": self.print_function,
         }
@@ -28,30 +29,32 @@ class Interpreter:
                 raise RuntimeError(f"Undefined variable: {node.name}")
             elif isinstance(node, UnaryOpNode):
                 operand_value = self.eval(node.expr)
-                if node.op.type == TokenType.PLUS:
+                if node.op == TokenType.PLUS:
                     return operand_value
-                elif node.op.type == TokenType.MINUS:
+                elif node.op == TokenType.MINUS:
                     return -operand_value
                 else:
-                    raise RuntimeError(f"Unsupported unary operation: {node.op.type}")
+                    raise RuntimeError(f"Unsupported unary operation: {node.op}")
             elif isinstance(node, BinaryOpNode):
                 left_value = self.eval(node.left)
                 right_value = self.eval(node.right)
-                if node.op.type == TokenType.PLUS:
+                if node.op == TokenType.PLUS:
                     return left_value + right_value
-                elif node.op.type == TokenType.MINUS:
+                elif node.op == TokenType.MINUS:
                     return left_value - right_value
-                elif node.op.type == TokenType.MULTIPLY:
+                elif node.op == TokenType.MULTIPLY:
                     return left_value * right_value
-                elif node.op.type == TokenType.DIVIDE:
+                elif node.op == TokenType.DIVIDE:
                     if right_value == 0:
                         raise RuntimeError("Division by zero")
                     return left_value / right_value
                 else:
-                    raise RuntimeError(f"Unsupported binary operation: {node.op.type}")
+                    raise RuntimeError(f"Unsupported binary operation: {node.op}")
             elif isinstance(node, FunctionCallNode):
                 if node.name in self.functions:
-                    return self.functions[node.name](node.argument)
+                    # Ensure that each argument is evaluated
+                    evaluated_arguments = [self.eval(arg) for arg in node.argument]
+                    return self.functions[node.name](evaluated_arguments)
                 raise RuntimeError(f"Unknown function: {node.name}")
             elif isinstance(node, ReturnNode):
                 return self.eval(node.return_value)
@@ -59,8 +62,8 @@ class Interpreter:
                 value = self.eval(node.value)
                 self.vars[node.name] = value
                 return value
-            elif node == None:
-                return
+            elif node is None:
+                return None
             else:
                 raise RuntimeError(f"Unsupported AST node: {node}")
         except RuntimeError as e:
@@ -68,14 +71,10 @@ class Interpreter:
             return None
 
     def print_function(self, arguments):
-        if arguments is None:
+        if not arguments:
             return None
 
-        args = []
-        for arg in arguments:
-            if arg is not None:
-                args.append(str(self.eval(arg)))
-
+        args = [str(arg) for arg in arguments if arg is not None]
         print(" ".join(args))
         return None
 
