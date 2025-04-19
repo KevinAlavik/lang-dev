@@ -28,7 +28,7 @@ class TokenType(Enum):
         return self.name
 
 
-keyword_table = {"return"}
+keyword_table = {"return", "fn", "var"}
 
 token_map = {
     "(": TokenType.LPAREN,

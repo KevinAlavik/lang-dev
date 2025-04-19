@@ -57,6 +57,19 @@ class VariableDeclarationNode(ASTNode):
         self.value = value
 
 
+class VariableAssignmentNode(ASTNode):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+
+class FunctionDeclarationNode(ASTNode):
+    def __init__(self, name, arguments, body):
+        self.name = name
+        self.arguments = arguments
+        self.body = body
+
+
 # Operator precedence
 PRECEDENCE = {
     TokenType.PLUS: 1,
@@ -166,20 +179,69 @@ def parse(tokens):
     def parse_statement():
         token_type, value = current_token()
 
+        if token_type == TokenType.KEYWORD and value == "fn":
+            expect(TokenType.KEYWORD, "fn")
+            return parse_function_declaration()
+
         if token_type == TokenType.KEYWORD and value == "return":
             expect(TokenType.KEYWORD, "return")
             expr = parse_expression()
             return ReturnNode(expr)
 
-        if token_type == TokenType.IDENTIFIER:
-            var_name = value
-            if next_token()[0] == TokenType.EQUAL:
-                eat()
-                eat()
-                expr = parse_expression()
-                return VariableDeclarationNode(var_name, expr)
+        if token_type == TokenType.KEYWORD and value == "var":
+            expect(TokenType.KEYWORD, "var")
+            token_type, var_name = expect(TokenType.IDENTIFIER)
+            expect(TokenType.EQUAL)
+            expr = parse_expression()
+            return VariableDeclarationNode(var_name, expr)
+
+        if token_type == TokenType.IDENTIFIER and next_token()[0] == TokenType.EQUAL:
+            name = value
+            eat()  # eat identifier
+            expect(TokenType.EQUAL)
+            expr = parse_expression()
+            return VariableAssignmentNode(name, expr)
 
         return parse_expression()
+
+    def parse_function_declaration():
+        _, name = eat()
+        expect(TokenType.LPAREN)
+
+        arguments = []
+
+        # Handle function arguments
+        while True:
+            token_type, value = current_token()
+
+            if token_type == TokenType.RPAREN:
+                break
+
+            if token_type == TokenType.IDENTIFIER:
+                arguments.append(IdentifierNode(value))
+                eat()
+            if current_token()[0] == TokenType.COMMA:
+                eat()
+
+            if current_token()[0] not in [
+                TokenType.IDENTIFIER,
+                TokenType.COMMA,
+                TokenType.RPAREN,
+            ]:
+                raise ValueError(
+                    f"Unexpected token in function arguments: {current_token()}"
+                )
+
+        expect(TokenType.RPAREN)
+        expect(TokenType.LBRACE)
+
+        body = []
+        while current_token()[0] != TokenType.RBRACE:
+            body.append(parse_statement())
+
+        expect(TokenType.RBRACE)
+
+        return FunctionDeclarationNode(name, arguments, body)
 
     statements = []
     while pos < len(tokens):

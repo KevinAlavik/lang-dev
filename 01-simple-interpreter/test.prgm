@@ -1,1 +1,5 @@
-print(PI)
+fn test() {
+    return 69
+}
+
+return test()
