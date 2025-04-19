@@ -50,6 +50,7 @@ keyword_table = {
     "if",
     "else",
     "while",
+    "at",
 }
 
 # Token map for symbols and operators

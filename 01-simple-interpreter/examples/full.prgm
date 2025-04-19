@@ -15,7 +15,7 @@ fn print_full_array(array) {
     print("Array elements: ")
     while(i < len(array)) {
         print(" " + str(array[i]))
-        i = i + 1
+        i += 1
     }
 }
 
@@ -35,13 +35,18 @@ fn main() {
     while(global != 0) {
         if(global == 1)
             print_global()
-        global = global - 1
+        global -= 1
     }
 
     print()
 
     print("Testing amazing array:")
-    print_full_array(amazing)
+    amazing at 0 = PI * 2 // Assign amazing array at index 0 with PI * 2
+    var i = 0
+    while(i < len(amazing)) {
+        print("Amazing at " + str(i) + " = " + str(amazing[i]))
+        i += 1
+    }
 
     print()
 
@@ -50,7 +55,7 @@ fn main() {
     var i = 0
     while(i < len(test_values)) {
         check_threshold(test_values[i])
-        i = i + 1
+        i += 1
     }
 
     print()
@@ -61,7 +66,7 @@ fn main() {
     i = 0
     while(i < len(negative_test_values)) {
         check_threshold(negative_test_values[i])
-        i = i + 1
+        i += 1
     }
 
     print()

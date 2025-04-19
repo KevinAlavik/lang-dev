@@ -1,6 +1,6 @@
 // Our names
 var names = ["Kevin", "Bonzo", "Spamton", "Creoz"]
-names[1] = "no"
+names at 1 = "no"
 
 // Loop over them
 var i = 0

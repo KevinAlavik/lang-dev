@@ -202,6 +202,35 @@ class Runtime:
 
                 return array_value[index_value]
 
+            elif isinstance(node, ArrayAssignmentNode):
+                array_value = self.eval(node.array)  # Evaluate the array
+                index_value = self.eval(node.index)  # Evaluate the index
+                assigned_value = self.eval(node.value)  # Evaluate the value to assign
+
+                if not isinstance(array_value, list):
+                    raise RuntimeError(
+                        f"Expected array, got {type(array_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+
+                if not isinstance(index_value, int):
+                    raise RuntimeError(
+                        f"Array index must be an integer, got {type(index_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+
+                if index_value < 0 or index_value >= len(array_value):
+                    raise RuntimeError(
+                        f"Array index out of bounds: {index_value}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+
+                array_value[index_value] = assigned_value
+                return assigned_value
+
             elif isinstance(node, UnaryOpNode):
                 operand_value = self.eval(node.expr)
                 if node.op == TokenType.PLUS:

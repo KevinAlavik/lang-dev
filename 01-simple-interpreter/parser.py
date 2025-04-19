@@ -266,23 +266,28 @@ def parse(tokens):
     def parse_statement():
         token_type, value = current_token()
 
+        # Function declaration
         if token_type == TokenType.KEYWORD and value == "fn":
             expect(TokenType.KEYWORD, "fn")
             return parse_function_declaration()
 
+        # If statement
         if token_type == TokenType.KEYWORD and value == "if":
             expect(TokenType.KEYWORD, "if")
             return parse_if()
 
+        # While statement
         if token_type == TokenType.KEYWORD and value == "while":
             expect(TokenType.KEYWORD, "while")
             return parse_while()
 
+        # Return statement
         if token_type == TokenType.KEYWORD and value == "return":
             expect(TokenType.KEYWORD, "return")
             expr = parse_expression()
             return ReturnNode(expr)
 
+        # Variable declaration
         if token_type == TokenType.KEYWORD and value == "var":
             expect(TokenType.KEYWORD, "var")
             token_type, var_name = expect(TokenType.IDENTIFIER)
@@ -290,13 +295,27 @@ def parse(tokens):
             expr = parse_expression()
             return VariableDeclarationNode(var_name, expr)
 
+        # Variable assignment
         if token_type == TokenType.IDENTIFIER and next_token()[0] == TokenType.EQUAL:
             name = value
-            eat()  # Eat identifier
+            eat()
             expect(TokenType.EQUAL)
             expr = parse_expression()
             return VariableAssignmentNode(name, expr)
 
+        # Array assignment
+        if token_type == TokenType.IDENTIFIER and (
+            next_token()[0] == TokenType.KEYWORD and next_token()[1] == "at"
+        ):
+            name = value
+            eat()
+            expect(TokenType.KEYWORD, "at")
+            index = parse_expression()
+            expect(TokenType.EQUAL)
+            expr = parse_expression()
+            return ArrayAssignmentNode(IdentifierNode(name), index, expr)
+
+        # General expression
         return parse_expression()
 
     def parse_function_declaration():
