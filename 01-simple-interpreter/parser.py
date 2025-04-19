@@ -9,27 +9,27 @@ class ASTNode:
 
 class NumberNode(ASTNode):
     def __init__(self, value):
-        self.value = int(value)
+        self.value = value
 
 
 class FloatNumberNode(ASTNode):
     def __init__(self, value):
-        self.value = float(value)
+        self.value = value
 
 
 class BoolNode(ASTNode):
     def __init__(self, value):
-        self.value = bool(value)
+        self.value = value
 
 
 class CharNode(ASTNode):
     def __init__(self, value):
-        self.value = value
+        self.value = ord(value)
 
 
 class StringNode(ASTNode):
     def __init__(self, value):
-        self.value = value
+        self.value = str(value)
 
 
 class UnaryOpNode(ASTNode):
@@ -80,7 +80,6 @@ class FunctionDeclarationNode(ASTNode):
         self.body = body
 
 
-# Comparison AST Nodes
 class LessThanNode(ASTNode):
     def __init__(self, left, right):
         self.left = left
@@ -115,6 +114,12 @@ class NotEqualNode(ASTNode):
     def __init__(self, left, right):
         self.left = left
         self.right = right
+
+
+class IfNode(ASTNode):
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body
 
 
 # Operator precedence
@@ -267,6 +272,10 @@ def parse(tokens):
             expect(TokenType.KEYWORD, "fn")
             return parse_function_declaration()
 
+        if token_type == TokenType.KEYWORD and value == "if":
+            expect(TokenType.KEYWORD, "if")
+            return parse_if()
+
         if token_type == TokenType.KEYWORD and value == "return":
             expect(TokenType.KEYWORD, "return")
             expr = parse_expression()
@@ -326,6 +335,24 @@ def parse(tokens):
         expect(TokenType.RBRACE)
         return FunctionDeclarationNode(name, arguments, body)
 
+    def parse_if():
+        expect(TokenType.LPAREN)
+
+        condition = parse_expression()
+
+        expect(TokenType.RPAREN)
+        body = []
+        if current_token()[0] == TokenType.LBRACE:
+            expect(TokenType.LBRACE)
+            while current_token()[0] != TokenType.RBRACE:
+                body.append(parse_statement())
+            expect(TokenType.RBRACE)
+        else:
+            body.append(parse_statement())
+
+        return IfNode(condition, body)
+
+    # "main"
     statements = []
     while pos < len(tokens):
         statements.append(parse_statement())

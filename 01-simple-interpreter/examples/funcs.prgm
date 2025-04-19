@@ -1,5 +1,15 @@
+fn another() {
+    return 1
+}
+
 fn test() {
+    fn priv() {
+        print("Im a function that only exists in test's scope!")
+    }
+
+    priv()
     print("Hello from " + str(self)) // self -> test
 }
 
 print("Return value of test(): ", test())
+print("Return value of another(): ", another())

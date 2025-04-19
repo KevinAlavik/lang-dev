@@ -144,19 +144,19 @@ class Runtime:
     def eval(self, node):
         try:
             if isinstance(node, NumberNode):
-                return node.value
+                return int(node.value)
 
             if isinstance(node, FloatNumberNode):
-                return node.value
+                return float(node.value)
 
             if isinstance(node, BoolNode):
-                return node.value
+                return bool(node.value)
 
             elif isinstance(node, CharNode):
-                return node.value
+                return chr(node.value)
 
             elif isinstance(node, StringNode):
-                return node.value
+                return str(node.value)
 
             elif isinstance(node, IdentifierNode):
                 return self.global_scope.get_var(node.name)
@@ -236,22 +236,97 @@ class Runtime:
                 return value
 
             elif isinstance(node, LessThanNode):
-                return self.eval(node.left) < self.eval(node.right)
+                left_value = self.eval(node.left)
+                right_value = self.eval(node.right)
+                if not isinstance(left_value, (int, float)) or not isinstance(
+                    right_value, (int, float)
+                ):
+                    raise RuntimeError(
+                        f"Unsupported operand types for '<': {type(left_value)} and {type(right_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+                return left_value < right_value
 
             elif isinstance(node, GreaterThanNode):
-                return self.eval(node.left) > self.eval(node.right)
+                left_value = self.eval(node.left)
+                right_value = self.eval(node.right)
+                if not isinstance(left_value, (int, float)) or not isinstance(
+                    right_value, (int, float)
+                ):
+                    raise RuntimeError(
+                        f"Unsupported operand types for '>': {type(left_value)} and {type(right_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+                return left_value > right_value
 
             elif isinstance(node, LessThanEqualNode):
-                return self.eval(node.left) >= self.eval(node.right)
+                left_value = self.eval(node.left)
+                right_value = self.eval(node.right)
+                if not isinstance(left_value, (int, float)) or not isinstance(
+                    right_value, (int, float)
+                ):
+                    raise RuntimeError(
+                        f"Unsupported operand types for '<=': {type(left_value)} and {type(right_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+                return left_value <= right_value
 
             elif isinstance(node, GreaterThanEqualNode):
-                return self.eval(node.left) <= self.eval(node.right)
+                left_value = self.eval(node.left)
+                right_value = self.eval(node.right)
+                if not isinstance(left_value, (int, float)) or not isinstance(
+                    right_value, (int, float)
+                ):
+                    raise RuntimeError(
+                        f"Unsupported operand types for '>=': {type(left_value)} and {type(right_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+                return left_value >= right_value
 
             elif isinstance(node, EqualNode):
-                return self.eval(node.left) == self.eval(node.right)
+                left_value = self.eval(node.left)
+                right_value = self.eval(node.right)
+                if isinstance(left_value, (float, int)) and isinstance(
+                    right_value, (float, int)
+                ):
+                    if math.isnan(left_value) or math.isnan(right_value):
+                        raise RuntimeError(
+                            "Cannot compare NaN values",
+                            node=node,
+                            scope=self.global_scope,
+                        )
+                return left_value == right_value
 
             elif isinstance(node, NotEqualNode):
-                return self.eval(node.left) != self.eval(node.right)
+                left_value = self.eval(node.left)
+                right_value = self.eval(node.right)
+                if isinstance(left_value, (float, int)) and isinstance(
+                    right_value, (float, int)
+                ):
+                    if math.isnan(left_value) or math.isnan(right_value):
+                        raise RuntimeError(
+                            "Cannot compare NaN values",
+                            node=node,
+                            scope=self.global_scope,
+                        )
+                return left_value != right_value
+
+            elif isinstance(node, IfNode):
+                condition_value = self.eval(node.condition)
+                print(condition_value)
+                if condition_value == True:
+                    for statement in node.body:
+                        result = self.eval(statement)
+                        if isinstance(statement, ReturnNode):
+                            # If a return statement is encountered, exit early
+                            if self.global_scope.parent is None:
+                                exit(result)
+                            return result
+                return None
 
             elif node is None:
                 return None

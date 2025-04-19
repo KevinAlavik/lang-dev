@@ -10,14 +10,13 @@ def main(file_path, src):
     tokens = lexer.tokenize(src)
     # pprint.pp(tokens)
     ast_tree = parser.parse(tokens)
-    # pprint.pp(ast_tree)
+    pprint.pp(ast_tree)
     global_scope = runtime.Scope()
     r = runtime.Runtime(global_scope)
 
     try:
         result = r.run(ast_tree)
-        if result != 0:
-            print(f"Program {file_path} returned non-zero value: {result}")
+        exit(result)
     except runtime.RuntimeError as e:
         pass
 
