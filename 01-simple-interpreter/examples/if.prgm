@@ -2,7 +2,7 @@ var name = input("Whats your name? ")
 
 if(name == "Kevin" || name == "kevin") {
 	print("Hi creator!")
-} else if(name == "Bonzo") {
+} else if(name == "Bonzo" || name == "bonzo") {
 	print("Hi nerd!")
 } else {
 	print("Hi " + name + "!")

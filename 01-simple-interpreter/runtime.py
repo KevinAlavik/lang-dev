@@ -224,14 +224,7 @@ class Runtime:
 
                 # Handle addition (+)
                 elif node.op == TokenType.PLUS:
-                    if isinstance(left_value, str) and isinstance(right_value, str):
-                        return left_value + right_value
-                    else:
-                        raise RuntimeError(
-                            f"Unsupported operand types for '+': {type(left_value)} and {type(right_value)}",
-                            node=node,
-                            scope=self.global_scope,
-                        )
+                    return left_value + right_value
 
                 # Handle subtraction (-)
                 elif node.op == TokenType.MINUS:
@@ -298,6 +291,16 @@ class Runtime:
                             return result
                 elif node.else_body:
                     for statement in node.else_body:
+                        result = self.eval(statement)
+                        if isinstance(statement, ReturnNode):
+                            if self.global_scope.parent is None:
+                                exit(result)
+                            return result
+                return None
+
+            elif isinstance(node, WhileNode):
+                while self.eval(node.condition):
+                    for statement in node.body:
                         result = self.eval(statement)
                         if isinstance(statement, ReturnNode):
                             if self.global_scope.parent is None:

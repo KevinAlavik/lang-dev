@@ -81,11 +81,16 @@ class FunctionDeclarationNode(ASTNode):
 
 
 class IfNode(ASTNode):
-
     def __init__(self, condition, body, else_body=None):
         self.condition = condition
         self.body = body
         self.else_body = else_body
+
+
+class WhileNode(ASTNode):
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body
 
 
 # Operator precedence
@@ -221,6 +226,10 @@ def parse(tokens):
             expect(TokenType.KEYWORD, "if")
             return parse_if()
 
+        if token_type == TokenType.KEYWORD and value == "while":
+            expect(TokenType.KEYWORD, "while")
+            return parse_while()
+
         if token_type == TokenType.KEYWORD and value == "return":
             expect(TokenType.KEYWORD, "return")
             expr = parse_expression()
@@ -309,6 +318,21 @@ def parse(tokens):
                 else_body = [parse_statement()]
 
         return IfNode(condition, body, else_body)
+
+    def parse_while():
+        expect(TokenType.LPAREN)
+        condition = parse_expression()
+        expect(TokenType.RPAREN)
+        body = []
+        if current_token()[0] == TokenType.LBRACE:
+            expect(TokenType.LBRACE)
+            while current_token()[0] != TokenType.RBRACE:
+                body.append(parse_statement())
+            expect(TokenType.RBRACE)
+        else:
+            body.append(parse_statement())
+
+        return WhileNode(condition, body)
 
     # "main"
     statements = []

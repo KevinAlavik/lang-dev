@@ -40,7 +40,14 @@ class TokenType(Enum):
 
 
 # Keyword table for reserved keywords
-keyword_table = {"return", "fn", "var", "if", "elif", "else"}
+keyword_table = {
+    "return",
+    "fn",
+    "var",
+    "if",
+    "else",
+    "while",
+}
 
 # Token map for symbols and operators
 token_map = {
