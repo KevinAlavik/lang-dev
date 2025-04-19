@@ -32,6 +32,9 @@ class TokenType(Enum):
     LOGICAL_AND = auto()
     LOGICAL_OR = auto()
 
+    PLUS_EQUAL = auto()
+    MINUS_EQUAL = auto()
+
     STRING = auto()
     CHAR = auto()
 
@@ -71,6 +74,8 @@ token_map = {
     "==": TokenType.EQUAL_EQUAL,
     "||": TokenType.LOGICAL_OR,
     "&&": TokenType.LOGICAL_AND,
+    "+=": TokenType.PLUS_EQUAL,
+    "-=": TokenType.MINUS_EQUAL,
 }
 
 # Special table for special keywords like "True" and "False"

@@ -279,6 +279,32 @@ class Runtime:
                         )
                     return left_value / right_value
 
+                # Handle Addition Assignment (+=)
+                elif node.op == TokenType.PLUS_EQUAL:
+                    if isinstance(left_value, (int, float)):
+                        new_value = left_value + right_value
+                        self.global_scope.assign_var(node.left.name, new_value)
+                        return new_value
+                    else:
+                        raise RuntimeError(
+                            f"Unsupported type for '+=': {type(left_value)}",
+                            node=node,
+                            scope=self.global_scope,
+                        )
+
+                # Handle Subtraction Assignment (-=)
+                elif node.op == TokenType.MINUS_EQUAL:
+                    if isinstance(left_value, (int, float)):
+                        new_value = left_value - right_value
+                        self.global_scope.assign_var(node.left.name, new_value)
+                        return new_value
+                    else:
+                        raise RuntimeError(
+                            f"Unsupported type for '-=': {type(left_value)}",
+                            node=node,
+                            scope=self.global_scope,
+                        )
+
                 else:
                     raise RuntimeError(
                         f"Unsupported binary operation: {node.op}",

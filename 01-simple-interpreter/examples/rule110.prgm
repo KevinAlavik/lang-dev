@@ -1,1 +1,66 @@
-print("not implemented >:D")
+var generations = 20  // Number of generations
+var width = 41  // Width of the automaton (odd number for symmetry)
+var current_gen = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+fn print_generation() {
+    var i = 0
+    while(i < len(current_gen)) {
+        if(current_gen[i] == 1)
+            print("1", end="")
+        else
+            print("0", end="")
+        i = i + 1
+    }
+    print()  // New line after each generation
+}
+
+fn apply_rule() {
+    var next_gen = [0] * width  // Create an array for the next generation
+    var i = 0
+    while(i < width) {
+        var left = current_gen[(i - 1 + width) % width]  // Wrap around for left boundary
+        var center = current_gen[i]
+        var right = current_gen[(i + 1) % width]  // Wrap around for right boundary
+
+        // Apply Rule 110
+        if(left == 1 && center == 1 && right == 1) {
+            next_gen[i] = 0
+        } else if(left == 1 && center == 1 && right == 0) {
+            next_gen[i] = 1
+        } else if(left == 1 && center == 0 && right == 1) {
+            next_gen[i] = 1
+        } else if(left == 1 && center == 0 && right == 0) {
+            next_gen[i] = 1
+        } else if(left == 0 && center == 1 && right == 1) {
+            next_gen[i] = 1
+        } else if(left == 0 && center == 1 && right == 0) {
+            next_gen[i] = 1
+        } else if(left == 0 && center == 0 && right == 1) {
+            next_gen[i] = 1
+        } else {
+            next_gen[i] = 0
+        }
+        i = i + 1
+    }
+    current_gen = next_gen  // Move to the next generation
+}
+
+fn main() {
+    // Initial configuration (single 1 in the middle)
+    current_gen[width / 2] = 1
+
+    // Print the initial generation
+    print("Generation 0:")
+    print_generation()
+
+    // Simulate the automaton for the specified number of generations
+    var gen = 1
+    while(gen < generations) {
+        print("Generation " + str(gen) + ":")
+        apply_rule()
+        print_generation()
+        gen = gen + 1
+    }
+}
+
+main()

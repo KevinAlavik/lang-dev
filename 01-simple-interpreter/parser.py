@@ -32,17 +32,6 @@ class StringNode(ASTNode):
         self.value = str(value)
 
 
-class ArrayNode(ASTNode):
-    def __init__(self, elements):
-        self.elements = elements
-
-
-class ArrayAccessNode(ASTNode):
-    def __init__(self, array, index):
-        self.array = array
-        self.index = index
-
-
 class UnaryOpNode(ASTNode):
     def __init__(self, op_token, expr):
         self.op = op_token
@@ -90,6 +79,24 @@ class VariableAssignmentNode(ASTNode):
         self.value = value
 
 
+class ArrayNode(ASTNode):
+    def __init__(self, elements):
+        self.elements = elements
+
+
+class ArrayAccessNode(ASTNode):
+    def __init__(self, array, index):
+        self.array = array
+        self.index = index
+
+
+class ArrayAssignmentNode(ASTNode):
+    def __init__(self, array, index, value):
+        self.array = array
+        self.index = index
+        self.value = value
+
+
 class FunctionDeclarationNode(ASTNode):
     def __init__(self, name, arguments, body):
         self.name = name
@@ -110,8 +117,8 @@ class WhileNode(ASTNode):
         self.body = body
 
 
-# Operator precedence
-PRECEDENCE = {
+# (type, precedence)
+binops = {
     TokenType.PLUS: 2,
     TokenType.MINUS: 2,
     TokenType.MULTIPLY: 3,
@@ -126,6 +133,9 @@ PRECEDENCE = {
     # Logical
     TokenType.LOGICAL_AND: 0,
     TokenType.LOGICAL_OR: 0,
+    # Etc
+    TokenType.PLUS_EQUAL: 0,
+    TokenType.MINUS_EQUAL: 0,
 }
 
 
@@ -237,10 +247,10 @@ def parse(tokens):
 
         while True:
             token_type, _ = current_token()
-            if token_type not in PRECEDENCE:
+            if token_type not in binops:
                 break
 
-            prec = PRECEDENCE[token_type]
+            prec = binops[token_type]
             if prec < min_prec:
                 break
 
