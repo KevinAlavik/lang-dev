@@ -1,0 +1,73 @@
+var global = 10
+var amazing = [10, -14, 69.420, global, PI]
+var threshold = 5
+
+fn print_global() {
+    fn prefix() {
+        return "Global value: "
+    }
+
+    print(prefix() + str(global))
+}
+
+fn print_full_array(array) {
+    var i = 0
+    print("Array elements: ")
+    while(i < len(array)) {
+        print(" " + str(array[i]))
+        i = i + 1
+    }
+}
+
+fn check_threshold(value) {
+    if (value > threshold) {
+        print("Value " + str(value) + " is above the threshold.")
+    } else if (value == threshold) {
+        print("Value " + str(value) + " is equal to the threshold.")
+    } else {
+        print("Value " + str(value) + " is below the threshold.")
+    }
+}
+
+fn main() {
+    // Loop through a series of tests to check global and array functionality
+    print("Testing global decrement:")
+    while(global != 0) {
+        if(global == 1)
+            print_global()
+        global = global - 1
+    }
+
+    print()
+
+    print("Testing amazing array:")
+    print_full_array(amazing)
+
+    print()
+
+    print("Testing threshold check:")
+    var test_values = [3, 5, 7, 2, 10]
+    var i = 0
+    while(i < len(test_values)) {
+        check_threshold(test_values[i])
+        i = i + 1
+    }
+
+    print()
+    
+    // Additional random checks
+    print("Testing negative numbers in array:")
+    var negative_test_values = [-5, -10, -1, 0, -7]
+    i = 0
+    while(i < len(negative_test_values)) {
+        check_threshold(negative_test_values[i])
+        i = i + 1
+    }
+
+    print()
+
+    // Final message
+    print("End of test cases.")
+}
+
+main()
