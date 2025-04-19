@@ -7,7 +7,6 @@ import runtime
 
 def main(file_path, src):
     tokens = lexer.tokenize(src)
-    # print(tokens)
     ast_tree = ast.parse(tokens)
     global_scope = runtime.Scope()
     r = runtime.Runtime(global_scope)

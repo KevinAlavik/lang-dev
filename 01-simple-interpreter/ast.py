@@ -9,6 +9,11 @@ class ASTNode:
 
 class NumberNode(ASTNode):
     def __init__(self, value):
+        self.value = int(value)
+
+
+class FloatNumberNode(ASTNode):
+    def __init__(self, value):
         self.value = float(value)
 
 
@@ -116,6 +121,10 @@ def parse(tokens):
         if token_type == TokenType.NUMBER:
             expect(TokenType.NUMBER)
             return NumberNode(value)
+
+        if token_type == TokenType.FLOAT:
+            expect(TokenType.FLOAT)
+            return FloatNumberNode(value)
 
         elif token_type == TokenType.CHAR:
             expect(TokenType.CHAR)

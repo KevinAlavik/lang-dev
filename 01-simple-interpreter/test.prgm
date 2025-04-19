@@ -2,4 +2,4 @@ fn test() {
     print("Hello from " + str(self)) // self -> test
 }
 
-test()
+print("Return value of test(): ", test())

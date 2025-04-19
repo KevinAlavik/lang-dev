@@ -5,6 +5,7 @@ from enum import Enum, auto
 
 class TokenType(Enum):
     NUMBER = auto()
+    FLOAT = auto()
 
     KEYWORD = auto()
     IDENTIFIER = auto()
@@ -125,13 +126,30 @@ def tokenize(input_expression):
                 tokens.append((TokenType.IDENTIFIER, word))
             continue
 
-        # Tokenize numbers
-        if current_char.isdigit():
-            start_pos = pos
-            while pos < length and input_expression[pos].isdigit():
+        # Numbers (float and int)
+        elif current_char.isdigit() or current_char == ".":
+            number = ""
+            dot_seen = False
+
+            while pos < length and (
+                input_expression[pos].isdigit() or input_expression[pos] == "."
+            ):
+                if input_expression[pos] == ".":
+                    if dot_seen:
+                        raise ValueError(
+                            "Invalid number format: multiple decimal points"
+                        )
+                    dot_seen = True
+                number += input_expression[pos]
                 pos += 1
-            number = input_expression[start_pos:pos]
-            tokens.append((TokenType.NUMBER, number))
+
+            if number == "." or number.endswith("."):
+                raise ValueError(f"Invalid number format: '{number}'")
+
+            if dot_seen:
+                tokens.append((TokenType.FLOAT, float(number)))
+            else:
+                tokens.append((TokenType.NUMBER, int(number)))
             continue
 
         # Tokenize symbols

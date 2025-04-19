@@ -59,9 +59,9 @@ class UserFunction:
         for statement in self.node.body:
             result = runtime.eval(statement)
             if isinstance(statement, ReturnNode):
-                return result
+                return result if result is not None else 0
 
-        return result
+        return result if result is not None else 0
 
     def __repr__(self):
         arg_list = ", ".join(arg.name for arg in self.node.arguments)
@@ -79,6 +79,7 @@ class Scope:
             self.functions["print"] = BuiltInFunction("print", Runtime.BuiltIn.print)
             self.functions["str"] = BuiltInFunction("str", Runtime.BuiltIn.str)
             self.functions["int"] = BuiltInFunction("int", Runtime.BuiltIn.int)
+            self.functions["float"] = BuiltInFunction("float", Runtime.BuiltIn.float)
 
     def get_var(self, name):
         if name in self.vars:
@@ -112,7 +113,7 @@ class Runtime:
     class BuiltIn:
         @staticmethod
         def print(args):
-            print("".join(str(arg) for arg in args))
+            print(" ".join(str(arg) for arg in args))
             return None
 
         @staticmethod
@@ -121,7 +122,21 @@ class Runtime:
 
         @staticmethod
         def int(args):
-            return "".join(int(arg) for arg in args)
+            if len(args) != 1:
+                raise RuntimeError("int() takes exactly one argument")
+            try:
+                return int(args[0])
+            except ValueError:
+                raise RuntimeError(f"Cannot convert {args[0]} to int")
+
+        @staticmethod
+        def float(args):
+            if len(args) != 1:
+                raise RuntimeError("float() takes exactly one argument")
+            try:
+                return float(args[0])
+            except ValueError:
+                raise RuntimeError(f"Cannot convert {args[0]} to float")
 
     def __init__(self, global_scope):
         self.global_scope = global_scope
@@ -129,6 +144,9 @@ class Runtime:
     def eval(self, node):
         try:
             if isinstance(node, NumberNode):
+                return node.value
+
+            if isinstance(node, FloatNumberNode):
                 return node.value
 
             elif isinstance(node, CharNode):
@@ -228,7 +246,6 @@ class Runtime:
 
         except Exception as e:
             print("\033[91mUnexpected Error:\033[0m", e)
-            traceback.print_exc()
             exit(1)
 
     def run(self, statements):
