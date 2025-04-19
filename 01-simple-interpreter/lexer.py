@@ -13,7 +13,14 @@ class TokenType(Enum):
     PLUS = auto()
     MINUS = auto()
     DIVIDE = auto()
+
     MODULO = auto()
+    BIT_OR = auto()
+    BIT_XOR = auto()
+    BIT_AND = auto()
+    BIT_NOT = auto()
+    BIT_LSH = auto()
+    BIT_RSH = auto()
 
     LPAREN = auto()
     RPAREN = auto()
@@ -63,12 +70,14 @@ token_map = {
     "[": TokenType.LBRACKET,
     "]": TokenType.RBRACKET,
     ",": TokenType.COMMA,
+    # Math
     "+": TokenType.PLUS,
     "-": TokenType.MINUS,
     "*": TokenType.MULTIPLY,
     "/": TokenType.DIVIDE,
-    "%": TokenType.MODULO,
+    # Assign
     "=": TokenType.EQUAL,
+    # Compare and logical
     ">": TokenType.GREATER,
     "<": TokenType.LESS,
     "!=": TokenType.BANG_EQUAL,
@@ -79,6 +88,14 @@ token_map = {
     "&&": TokenType.LOGICAL_AND,
     "+=": TokenType.PLUS_EQUAL,
     "-=": TokenType.MINUS_EQUAL,
+    # Bitwise
+    "%": TokenType.MODULO,
+    "|": TokenType.BIT_OR,
+    "^": TokenType.BIT_XOR,
+    "&": TokenType.BIT_AND,
+    "~": TokenType.BIT_NOT,
+    "<<": TokenType.BIT_LSH,
+    ">>": TokenType.BIT_RSH,
 }
 
 # Special table for special keywords like "True" and "False"
@@ -162,6 +179,27 @@ def tokenize(input_expression):
                 tokens.append((special_table[word], word))
             else:
                 tokens.append((TokenType.IDENTIFIER, word))
+            continue
+
+        # Hexadecimal or Binary Numbers
+        elif (
+            current_char == "0"
+            and pos + 1 < length
+            and (input_expression[pos + 1] == "x" or input_expression[pos + 1] == "b")
+        ):
+            prefix = input_expression[pos + 1]
+            base = 16 if prefix == "x" else 2
+            pos += 2  # Skip "0x" or "0b"
+            number = ""
+            while pos < length and input_expression[pos].isalnum():
+                number += input_expression[pos]
+                pos += 1
+
+            try:
+                value = int(number, base)
+                tokens.append((TokenType.NUMBER, value))
+            except ValueError:
+                raise ValueError(f"Invalid {prefix} number: {number}")
             continue
 
         # Numbers (float and int)

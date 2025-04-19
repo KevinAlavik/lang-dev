@@ -1,66 +1,57 @@
-var generations = 20  // Number of generations
-var width = 41  // Width of the automaton (odd number for symmetry)
-var current_gen = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+var width = 21
+var generations = 20
+var current_gen = [0] * width
+var next_gen = [0] * width
 
-fn print_generation() {
+current_gen at 10 = 1  // Set the initial condition: a single "1" in the middle
+
+fn print_generation(generation) {
+    var output = ""
     var i = 0
-    while(i < len(current_gen)) {
-        if(current_gen[i] == 1)
-            print("1", end="")
-        else
-            print("0", end="")
-        i = i + 1
+    while(i < len(generation)) {
+        if (generation[i] == 1) {
+            output += "1"
+        } else {
+            output += "0"
+        }
+        i += 1
     }
-    print()  // New line after each generation
+    print(output)
 }
 
-fn apply_rule() {
-    var next_gen = [0] * width  // Create an array for the next generation
-    var i = 0
-    while(i < width) {
-        var left = current_gen[(i - 1 + width) % width]  // Wrap around for left boundary
-        var center = current_gen[i]
-        var right = current_gen[(i + 1) % width]  // Wrap around for right boundary
+fn rule110(left, center, right) {
+    // Rule 110 logic: 1 if (left XOR (center OR right))
+    return left ^ (center | right)
+}
 
-        // Apply Rule 110
-        if(left == 1 && center == 1 && right == 1) {
-            next_gen at i = 0
-        } else if(left == 1 && center == 1 && right == 0) {
-            next_gen at i = 1
-        } else if(left == 1 && center == 0 && right == 1) {
-            next_gen at i = 1
-        } else if(left == 1 && center == 0 && right == 0) {
-            next_gen at i = 1
-        } else if(left == 0 && center == 1 && right == 1) {
-            next_gen at i = 1
-        } else if(left == 0 && center == 1 && right == 0) {
-            next_gen at i = 1
-        } else if(left == 0 && center == 0 && right == 1) {
-            next_gen at i = 1
-        } else {
-            next_gen at i = 0
-        }
-        i = i + 1
+fn generate_next(current_gen) {
+    var i = 1
+    while(i < width - 1) {
+        var left = current_gen[i - 1]
+        var center = current_gen[i]
+        var right = current_gen[i + 1]
+
+        next_gen at i = rule110(left, center, right)  // Using "at" for assignment
+        i += 1
     }
-    current_gen = next_gen  // Move to the next generation
+    next_gen at 0 = current_gen[0]  // First cell stays the same
+    next_gen at (width - 1) = current_gen[width - 1]  // Last cell stays the same
 }
 
 fn main() {
-    // Initial configuration (single 1 in the middle)
-    current_gen at (width / 2) = 1
+    print("Initial generation:")
+    print_generation(current_gen)
 
-    // Print the initial generation
-    print("Generation 0:")
-    print_generation()
+    var generation = 0
+    while(generation < generations) {
+        print("\nGeneration " + str(generation + 1) + ":")
+        generate_next(current_gen)
+        print_generation(next_gen)
 
-    // Simulate the automaton for the specified number of generations
-    var gen = 1
-    while(gen < generations) {
-        print("Generation " + str(gen) + ":")
-        apply_rule()
-        print_generation()
-        gen = gen + 1
-    }
+        // Move to the next generation
+        current_gen = next_gen
+        next_gen = [0] * width  // Reset next_gen
+        generation += 1
 }
 
 main()

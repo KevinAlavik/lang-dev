@@ -345,6 +345,30 @@ class Runtime:
                 elif node.op == TokenType.MODULO:
                     return left_value % right_value
 
+                # Handle bitwise OR (|)
+                elif node.op == TokenType.BIT_OR:
+                    return left_value | right_value
+
+                # Handle bitwise XOR (^)
+                elif node.op == TokenType.BIT_XOR:
+                    return left_value ^ right_value
+
+                # Handle bitwise AND (&)
+                elif node.op == TokenType.BIT_AND:
+                    return left_value & right_value
+
+                # Handle bitwise NOT (~)
+                elif node.op == TokenType.BIT_NOT:
+                    return left_value & right_value
+
+                # Handle bitwise Left Shift (<<)
+                elif node.op == TokenType.BIT_LSH:
+                    return left_value << right_value
+
+                # Handle bitwise Right Shift (>>)
+                elif node.op == TokenType.BIT_RSH:
+                    return left_value >> right_value
+
                 else:
                     raise RuntimeError(
                         f"Unsupported binary operation: {node.op}",

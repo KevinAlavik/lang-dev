@@ -137,6 +137,13 @@ binops = {
     # Etc
     TokenType.PLUS_EQUAL: 0,
     TokenType.MINUS_EQUAL: 0,
+    # Bitwise
+    TokenType.BIT_OR: 4,
+    TokenType.BIT_XOR: 4,
+    TokenType.BIT_AND: 4,
+    TokenType.BIT_NOT: 4,
+    TokenType.BIT_LSH: 4,
+    TokenType.BIT_RSH: 4,
 }
 
 
