@@ -50,9 +50,6 @@ fn random_row() {
     return out
 }
 
-
-print("epic")
-
 var next = random_row()
 var i = 0
 while(i < ITTER) {

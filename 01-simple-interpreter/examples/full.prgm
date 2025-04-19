@@ -51,10 +51,10 @@ fn main() {
 
     print("Testing threshold check:")
     var test_values = [3, 5, 7, 2, 10]
-    var i = 0
-    while(i < len(test_values)) {
-        check_threshold(test_values[i])
-        i += 1
+    var j = 0
+    while(j < len(test_values)) {
+        check_threshold(test_values[j])
+        j += 1
     }
 
     print()
@@ -62,10 +62,10 @@ fn main() {
     // Additional random checks
     print("Testing negative numbers in array:")
     var negative_test_values = [-5, -10, -1, 0, -7]
-    i = 0
-    while(i < len(negative_test_values)) {
-        check_threshold(negative_test_values[i])
-        i += 1
+    var k = 0
+    while(k < len(negative_test_values)) {
+        check_threshold(negative_test_values[k])
+        k += 1
     }
 
     print()

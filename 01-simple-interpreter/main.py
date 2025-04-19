@@ -38,7 +38,7 @@ def main(file_path=None, src=None):
         r = runtime.Runtime(global_scope)
 
         try:
-            result = r.run(ast_tree)
+            result = r.execute(ast_tree)
             exit(result)
         except runtime.RuntimeError as e:
             pass
