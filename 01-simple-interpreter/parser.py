@@ -32,6 +32,17 @@ class StringNode(ASTNode):
         self.value = str(value)
 
 
+class ArrayNode(ASTNode):
+    def __init__(self, elements):
+        self.elements = elements
+
+
+class ArrayAccessNode(ASTNode):
+    def __init__(self, array, index):
+        self.array = array
+        self.index = index
+
+
 class UnaryOpNode(ASTNode):
     def __init__(self, op_token, expr):
         self.op = op_token
@@ -65,6 +76,12 @@ class VariableDeclarationNode(ASTNode):
     def __init__(self, name, value):
         self.name = name
         self.value = value
+
+
+class VariableAccessNode(ASTNode):
+    def __init__(self, variable, index):
+        self.variable = variable
+        self.index = index
 
 
 class VariableAssignmentNode(ASTNode):
@@ -172,10 +189,16 @@ def parse(tokens):
                 if current_token()[0] != TokenType.RPAREN:
                     args.append(parse_expression())
                     while current_token()[0] == TokenType.COMMA:
-                        eat()  # Eat the comma
+                        eat()
                         args.append(parse_expression())
                 expect(TokenType.RPAREN)
                 return FunctionCallNode(value, args)
+            elif current_token()[0] == TokenType.LBRACKET:
+                # Handle array access: arr[0]
+                expect(TokenType.LBRACKET)
+                index = parse_expression()
+                expect(TokenType.RBRACKET)
+                return ArrayAccessNode(IdentifierNode(value), index)
             return IdentifierNode(value)
 
         elif token_type == TokenType.LPAREN:
@@ -183,6 +206,21 @@ def parse(tokens):
             expr = parse_expression()
             expect(TokenType.RPAREN)
             return expr
+
+        # Handle arrays
+        elif token_type == TokenType.LBRACKET:
+            expect(TokenType.LBRACKET)
+            elements = []
+
+            # Parse elements inside the array
+            if current_token()[0] != TokenType.RBRACKET:
+                elements.append(parse_expression())
+                while current_token()[0] == TokenType.COMMA:
+                    eat()
+                    elements.append(parse_expression())
+
+            expect(TokenType.RBRACKET)
+            return ArrayNode(elements)
 
         raise ValueError(f"Unexpected token in primary: {token_type}")
 

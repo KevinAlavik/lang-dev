@@ -1,0 +1,11 @@
+// Our names
+var names = ["Kevin", "Bonzo", "Spamton", "Creoz"]
+
+// Loop over them
+var i = 0
+var j = len(names)
+
+while(i < j) {
+	print(names[i])
+	i = i + 1
+}

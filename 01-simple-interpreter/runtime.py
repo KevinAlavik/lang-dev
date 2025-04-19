@@ -80,6 +80,7 @@ class Scope:
             self.functions["str"] = BuiltInFunction("str", Runtime.BuiltIn.str)
             self.functions["int"] = BuiltInFunction("int", Runtime.BuiltIn.int)
             self.functions["float"] = BuiltInFunction("float", Runtime.BuiltIn.float)
+            self.functions["len"] = BuiltInFunction("len", Runtime.BuiltIn.len)
 
     def get_var(self, name):
         if name in self.vars:
@@ -142,6 +143,12 @@ class Runtime:
             except ValueError:
                 raise RuntimeError(f"Cannot convert {args[0]} to float")
 
+        @staticmethod
+        def len(args):
+            if len(args) != 1:
+                raise RuntimeError("len() takes exactly one argument")
+            return len(args[0])
+
     def __init__(self, global_scope):
         self.global_scope = global_scope
 
@@ -164,6 +171,36 @@ class Runtime:
 
             elif isinstance(node, IdentifierNode):
                 return self.global_scope.get_var(node.name)
+
+            elif isinstance(node, ArrayNode):
+                return [self.eval(element) for element in node.elements]
+
+            elif isinstance(node, ArrayAccessNode):
+                array_value = self.eval(node.array)  # Evaluate the array
+                index_value = self.eval(node.index)  # Evaluate the index
+
+                if not isinstance(array_value, list):
+                    raise RuntimeError(
+                        f"Expected array, got {type(array_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+
+                if not isinstance(index_value, int):
+                    raise RuntimeError(
+                        f"Array index must be an integer, got {type(index_value)}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+
+                if index_value < 0 or index_value >= len(array_value):
+                    raise RuntimeError(
+                        f"Array index out of bounds: {index_value}",
+                        node=node,
+                        scope=self.global_scope,
+                    )
+
+                return array_value[index_value]
 
             elif isinstance(node, UnaryOpNode):
                 operand_value = self.eval(node.expr)
