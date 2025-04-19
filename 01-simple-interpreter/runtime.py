@@ -59,14 +59,24 @@ class Interpreter:
                 value = self.eval(node.value)
                 self.vars[node.name] = value
                 return value
+            elif node == None:
+                return
             else:
                 raise RuntimeError(f"Unsupported AST node: {node}")
         except RuntimeError as e:
             print(f"Runtime Error: {str(e)}")
             return None
 
-    def print_function(self, argument):
-        print(self.eval(argument))
+    def print_function(self, arguments):
+        if arguments is None:
+            return None
+
+        args = []
+        for arg in arguments:
+            if arg is not None:
+                args.append(str(self.eval(arg)))
+
+        print(" ".join(args))
         return None
 
     def run(self, statements):

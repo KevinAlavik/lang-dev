@@ -116,9 +116,14 @@ def parse(tokens):
             expect(TokenType.IDENTIFIER)
             if current_token()[0] == TokenType.LPAREN:
                 expect(TokenType.LPAREN)
-                argument = parse_expression()
+                args = []
+                if current_token()[0] != TokenType.RPAREN:
+                    args.append(parse_expression())
+                    while current_token()[0] == TokenType.COMMA:
+                        eat()  # Eat the comma
+                        args.append(parse_expression())
                 expect(TokenType.RPAREN)
-                return FunctionCallNode(value, argument)
+                return FunctionCallNode(value, args)
             return IdentifierNode(value)
 
         elif token_type == TokenType.LPAREN:
@@ -161,18 +166,16 @@ def parse(tokens):
     def parse_statement():
         token_type, value = current_token()
 
-        # Parse return statements
         if token_type == TokenType.KEYWORD and value == "return":
             expect(TokenType.KEYWORD, "return")
             expr = parse_expression()
             return ReturnNode(expr)
 
-        # Parse variable declaration
         if token_type == TokenType.IDENTIFIER:
             var_name = value
             if next_token()[0] == TokenType.EQUAL:
-                eat()  # Eat the EQUAL token
-                eat()  # Eat the value
+                eat()
+                eat()
                 expr = parse_expression()
                 return VariableDeclarationNode(var_name, expr)
 
