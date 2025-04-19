@@ -13,6 +13,7 @@ class TokenType(Enum):
     PLUS = auto()
     MINUS = auto()
     DIVIDE = auto()
+    MODULO = auto()
 
     LPAREN = auto()
     RPAREN = auto()
@@ -66,6 +67,7 @@ token_map = {
     "-": TokenType.MINUS,
     "*": TokenType.MULTIPLY,
     "/": TokenType.DIVIDE,
+    "%": TokenType.MODULO,
     "=": TokenType.EQUAL,
     ">": TokenType.GREATER,
     "<": TokenType.LESS,
@@ -83,6 +85,8 @@ token_map = {
 special_table = {
     "True": TokenType.BOOL,
     "False": TokenType.BOOL,
+    "true": TokenType.BOOL,
+    "false": TokenType.BOOL,
 }
 
 

@@ -24,21 +24,21 @@ fn apply_rule() {
 
         // Apply Rule 110
         if(left == 1 && center == 1 && right == 1) {
-            next_gen[i] = 0
+            next_gen at i = 0
         } else if(left == 1 && center == 1 && right == 0) {
-            next_gen[i] = 1
+            next_gen at i = 1
         } else if(left == 1 && center == 0 && right == 1) {
-            next_gen[i] = 1
+            next_gen at i = 1
         } else if(left == 1 && center == 0 && right == 0) {
-            next_gen[i] = 1
+            next_gen at i = 1
         } else if(left == 0 && center == 1 && right == 1) {
-            next_gen[i] = 1
+            next_gen at i = 1
         } else if(left == 0 && center == 1 && right == 0) {
-            next_gen[i] = 1
+            next_gen at i = 1
         } else if(left == 0 && center == 0 && right == 1) {
-            next_gen[i] = 1
+            next_gen at i = 1
         } else {
-            next_gen[i] = 0
+            next_gen at i = 0
         }
         i = i + 1
     }
@@ -47,7 +47,7 @@ fn apply_rule() {
 
 fn main() {
     // Initial configuration (single 1 in the middle)
-    current_gen[width / 2] = 1
+    current_gen at (width / 2) = 1
 
     // Print the initial generation
     print("Generation 0:")

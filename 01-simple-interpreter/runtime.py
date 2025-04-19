@@ -81,6 +81,7 @@ class Scope:
             self.functions["int"] = BuiltInFunction("int", Runtime.BuiltIn.int)
             self.functions["float"] = BuiltInFunction("float", Runtime.BuiltIn.float)
             self.functions["len"] = BuiltInFunction("len", Runtime.BuiltIn.len)
+            self.functions["exit"] = BuiltInFunction("exit", Runtime.BuiltIn.exit)
 
     def get_var(self, name):
         if name in self.vars:
@@ -148,6 +149,12 @@ class Runtime:
             if len(args) != 1:
                 raise RuntimeError("len() takes exactly one argument")
             return len(args[0])
+
+        @staticmethod
+        def exit(args):
+            if len(args) != 1:
+                raise RuntimeError("exit() takes exactly one argument")
+            return exit(args[0])
 
     def __init__(self, global_scope):
         self.global_scope = global_scope
@@ -334,6 +341,10 @@ class Runtime:
                             scope=self.global_scope,
                         )
 
+                # Handle modulo (%)
+                elif node.op == TokenType.MODULO:
+                    return left_value % right_value
+
                 else:
                     raise RuntimeError(
                         f"Unsupported binary operation: {node.op}",
@@ -378,15 +389,11 @@ class Runtime:
                     for statement in node.body:
                         result = self.eval(statement)
                         if isinstance(statement, ReturnNode):
-                            if self.global_scope.parent is None:
-                                exit(result)
                             return result
                 elif node.else_body:
                     for statement in node.else_body:
                         result = self.eval(statement)
                         if isinstance(statement, ReturnNode):
-                            if self.global_scope.parent is None:
-                                exit(result)
                             return result
                 return None
 
@@ -395,8 +402,6 @@ class Runtime:
                     for statement in node.body:
                         result = self.eval(statement)
                         if isinstance(statement, ReturnNode):
-                            if self.global_scope.parent is None:
-                                exit(result)
                             return result
                 return None
 
@@ -462,7 +467,6 @@ class Runtime:
 
         except RuntimeError as e:
             print(f"\033[91m{str(e)}\033[0m")
-            exit(1)
 
         except Exception as e:
             print("\033[91mUnexpected Error:\033[0m", e)
@@ -471,6 +475,5 @@ class Runtime:
     def run(self, statements):
         for statement in statements:
             result = self.eval(statement)
-            if isinstance(statement, ReturnNode):
-                return result
+            return result
         return 0

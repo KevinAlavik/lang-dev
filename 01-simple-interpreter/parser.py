@@ -123,6 +123,7 @@ binops = {
     TokenType.MINUS: 2,
     TokenType.MULTIPLY: 3,
     TokenType.DIVIDE: 3,
+    TokenType.MODULO: 3,
     # Comparison
     TokenType.EQUAL_EQUAL: 1,
     TokenType.BANG_EQUAL: 1,
