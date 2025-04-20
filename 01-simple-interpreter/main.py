@@ -12,10 +12,10 @@ def eval_input(src, global_scope):
     r = runtime.Runtime(global_scope)
 
     try:
-        result = r.run(ast_tree)
+        result = r.execute(ast_tree)
         return result
     except runtime.RuntimeError as e:
-        print(f"Runtime Error: {e}")
+        print(f"{e}")
         return None
 
 
@@ -36,12 +36,12 @@ def main(file_path=None, src=None):
         ast_tree = parser.parse(tokens)
         global_scope = runtime.Scope()
         r = runtime.Runtime(global_scope)
-
         try:
             result = r.execute(ast_tree)
             exit(result)
         except runtime.RuntimeError as e:
-            pass
+            print(f"{e}")
+            return None
     else:
         global_scope = runtime.Scope()
         print("Welcome to the REPL. Type 'exit' to quit.")

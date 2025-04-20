@@ -1,8 +1,10 @@
 import math
 from parser import *
 from lexer import *
-import inspect
 from typing import Dict, List, Any, Callable, Optional, Union
+from functools import lru_cache
+import random
+import sys
 
 
 class RuntimeError(Exception):
@@ -16,7 +18,7 @@ class RuntimeError(Exception):
     def __str__(self) -> str:
         location = f" in scope at {hex(id(self.scope))}"
         if self.func:
-            return f"\033[91mRuntimeError{location} in function '{self.func.name}'\033[0m: {self.message}"
+            return f"\033[91mRuntimeError{location} in function '{self.func.name}': {self.message}\033[0m"
         return f"\033[91mRuntimeError{location}: {self.message}\033[0m"
 
 
@@ -60,6 +62,8 @@ class BuiltInFunction(Function):
 
 
 class UserFunction(Function):
+    __slots__ = ("name", "node", "scope")
+
     def __init__(self, name: str, node, defining_scope):
         super().__init__(name)
         self.node = node
@@ -68,7 +72,6 @@ class UserFunction(Function):
     def __call__(self, args: List[Any]) -> Any:
         try:
             self.validate_args(args, len(self.node.arguments))
-
             func_scope = Scope(parent=self.scope)
 
             for arg_node, value in zip(self.node.arguments, args):
@@ -102,14 +105,18 @@ class UserFunction(Function):
 
 
 class Scope:
+    __slots__ = ("symbols", "parent", "_cached_lookups")
+
     def __init__(self, parent=None):
         self.symbols: Dict[str, Any] = {}
         self.parent = parent
+        self._cached_lookups = {}
 
         if parent is None:
             self._initialize_builtins()
 
     def _initialize_builtins(self) -> None:
+        """Initialize built-in constants and functions in global scope."""
         self.define("PI", math.pi)
 
         builtin_functions = {
@@ -120,31 +127,44 @@ class Scope:
             "float": BuiltInFunction("float", Runtime.Builtins.float_func, 1),
             "len": BuiltInFunction("len", Runtime.Builtins.len_func, 1),
             "exit": BuiltInFunction("exit", Runtime.Builtins.exit_func, 1),
+            "rand": BuiltInFunction("rand", Runtime.Builtins.rand_func, 0),
         }
 
         for name, func in builtin_functions.items():
             self.define(name, func)
 
     def lookup(self, name: str) -> Any:
+        if name in self._cached_lookups:
+            target_scope, value = self._cached_lookups[name]
+            if name in target_scope.symbols and target_scope.symbols[name] is value:
+                return value
+
         scope = self
         while scope:
             if name in scope.symbols:
-                return scope.symbols[name]
+                value = scope.symbols[name]
+                self._cached_lookups[name] = (scope, value)
+                return value
             scope = scope.parent
 
         raise RuntimeError(f"Undefined variable or function: {name}", scope=self)
 
     def define(self, name: str, value: Any) -> None:
         self.symbols[name] = value
+        if name in self._cached_lookups:
+            del self._cached_lookups[name]
 
     def assign(self, name: str, value: Any) -> None:
         scope = self
         while scope:
             if name in scope.symbols:
                 scope.symbols[name] = value
+                if name in self._cached_lookups:
+                    self._cached_lookups[name] = (scope, value)
+
+                print(f"{name} = {value}")
                 return
             scope = scope.parent
-
         raise RuntimeError(f"Assignment to undefined variable: {name}", scope=self)
 
 
@@ -208,6 +228,13 @@ class Runtime:
             except Exception as e:
                 raise RuntimeError(f"Exit error: {str(e)}")
 
+        @staticmethod
+        def rand_func(args: List[Any]) -> int:
+            try:
+                return random.randrange(0, sys.maxsize)
+            except Exception as e:
+                raise RuntimeError(f"Rand error: {str(e)}")
+
     def __init__(self, scope: Scope):
         self.scope = scope
         self._node_handlers = {
@@ -230,6 +257,7 @@ class Runtime:
             IfNode: self._eval_if,
             WhileNode: self._eval_while,
         }
+
         self._binary_op_handlers = {
             TokenType.LOGICAL_AND: lambda left, right: left and right,
             TokenType.LOGICAL_OR: lambda left, right: left or right,
@@ -251,11 +279,35 @@ class Runtime:
             TokenType.BIT_RSH: lambda left, right: left >> right,
         }
 
+        self._eval_cache = {}
+
+    @lru_cache(maxsize=128)
+    def _get_node_type(self, node):
+        return type(node)
+
     def evaluate(self, node) -> Any:
         try:
+            node_hash = getattr(node, "__hash__", None)
+            if node_hash is not None:
+                try:
+                    cache_key = (node, id(self.scope))
+                    if cache_key in self._eval_cache:
+                        return self._eval_cache[cache_key]
+                except:
+                    pass
+
             handler = self._node_handlers.get(type(node))
             if handler:
-                return handler(node)
+                result = handler(node)
+
+                if node_hash is not None:
+                    try:
+                        cache_key = (node, id(self.scope))
+                        self._eval_cache[cache_key] = result
+                    except:
+                        pass
+
+                return result
 
             raise RuntimeError(
                 f"Unsupported node type: {type(node).__name__}",
@@ -270,39 +322,24 @@ class Runtime:
             )
 
     def _eval_number(self, node) -> int:
-        try:
-            return int(node.value)
-        except Exception as e:
-            raise RuntimeError(
-                f"Number conversion error: {str(e)}", node=node, scope=self.scope
-            )
+        return node.value
 
     def _eval_float(self, node) -> float:
-        try:
-            return float(node.value)
-        except Exception as e:
-            raise RuntimeError(
-                f"Float conversion error: {str(e)}", node=node, scope=self.scope
-            )
+        return node.value
 
     def _eval_bool(self, node) -> bool:
         return node.value
 
     def _eval_char(self, node) -> str:
-        try:
-            return chr(node.value)
-        except Exception as e:
-            raise RuntimeError(
-                f"Character conversion error: {str(e)}", node=node, scope=self.scope
-            )
+        return chr(node.value)
 
     def _eval_string(self, node) -> str:
-        return str(node.value)
+        return node.value
 
     def _eval_identifier(self, node) -> Any:
         try:
             return self.scope.lookup(node.name)
-        except RuntimeError as e:
+        except Exception:
             raise RuntimeError(
                 f"Undefined variable or function: {node.name}",
                 node=node,
@@ -310,302 +347,213 @@ class Runtime:
             )
 
     def _eval_array(self, node) -> List[Any]:
-        try:
-            return [self.evaluate(element) for element in node.elements]
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"Array creation error: {str(e)}", node=node, scope=self.scope
-            )
+        return [self.evaluate(element) for element in node.elements]
 
     def _eval_array_access(self, node) -> Any:
-        try:
-            array_value = self.evaluate(node.array)
-            index_value = self.evaluate(node.index)
+        array_value = self.evaluate(node.array)
+        index_value = self.evaluate(node.index)
 
-            if not isinstance(array_value, list):
-                raise RuntimeError(
-                    f"Expected array, got {type(array_value).__name__}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            if not isinstance(index_value, int):
-                raise RuntimeError(
-                    f"Array index must be an integer, got {type(index_value).__name__}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            if index_value < 0 or index_value >= len(array_value):
-                raise RuntimeError(
-                    f"Array index out of bounds: {index_value}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            return array_value[index_value]
-        except RuntimeError:
-            raise
-        except Exception as e:
+        if not isinstance(array_value, list):
             raise RuntimeError(
-                f"Array access error: {str(e)}", node=node, scope=self.scope
+                f"Expected array, got {type(array_value).__name__}",
+                node=node,
+                scope=self.scope,
             )
+
+        if not isinstance(index_value, int):
+            raise RuntimeError(
+                f"Array index must be an integer, got {type(index_value).__name__}",
+                node=node,
+                scope=self.scope,
+            )
+
+        if index_value < 0 or index_value >= len(array_value):
+            raise RuntimeError(
+                f"Array index out of bounds: {index_value}", node=node, scope=self.scope
+            )
+
+        return array_value[index_value]
 
     def _eval_array_assignment(self, node) -> Any:
-        try:
-            array_value = self.evaluate(node.array)
-            index_value = self.evaluate(node.index)
-            assigned_value = self.evaluate(node.value)
+        array_value = self.evaluate(node.array)
+        index_value = self.evaluate(node.index)
+        assigned_value = self.evaluate(node.value)
 
-            if not isinstance(array_value, list):
-                raise RuntimeError(
-                    f"Expected array, got {type(array_value).__name__}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            if not isinstance(index_value, int):
-                raise RuntimeError(
-                    f"Array index must be an integer, got {type(index_value).__name__}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            if index_value < 0 or index_value >= len(array_value):
-                raise RuntimeError(
-                    f"Array index out of bounds: {index_value}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            array_value[index_value] = assigned_value
-            return assigned_value
-        except RuntimeError:
-            raise
-        except Exception as e:
+        if not isinstance(array_value, list):
             raise RuntimeError(
-                f"Array assignment error: {str(e)}", node=node, scope=self.scope
+                f"Expected array, got {type(array_value).__name__}",
+                node=node,
+                scope=self.scope,
             )
+
+        if not isinstance(index_value, int):
+            raise RuntimeError(
+                f"Array index must be an integer, got {type(index_value).__name__}",
+                node=node,
+                scope=self.scope,
+            )
+
+        if index_value < 0 or index_value >= len(array_value):
+            raise RuntimeError(
+                f"Array index out of bounds: {index_value}", node=node, scope=self.scope
+            )
+
+        array_value[index_value] = assigned_value
+        return assigned_value
 
     def _eval_unary_op(self, node) -> Any:
-        try:
-            operand_value = self.evaluate(node.expr)
+        operand_value = self.evaluate(node.expr)
 
-            if node.op == TokenType.PLUS:
-                return +operand_value
-            elif node.op == TokenType.MINUS:
-                return -operand_value
+        if node.op == TokenType.PLUS:
+            return +operand_value
+        elif node.op == TokenType.MINUS:
+            return -operand_value
+        elif node.op == TokenType.LOGICAL_NOT:
+            return not operand_value
+        elif node.op == TokenType.BIT_NOT:
+            return ~operand_value
 
-            raise RuntimeError(
-                f"Unsupported unary operation: {node.op}", node=node, scope=self.scope
-            )
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"Unary operation error: {str(e)}", node=node, scope=self.scope
-            )
+        raise RuntimeError(
+            f"Unsupported unary operation: {node.op}", node=node, scope=self.scope
+        )
 
     def _eval_binary_op(self, node) -> Any:
-        try:
-            if node.op in (TokenType.PLUS_EQUAL, TokenType.MINUS_EQUAL):
-                return self._eval_compound_assignment(node)
+        if node.op in (TokenType.PLUS_EQUAL, TokenType.MINUS_EQUAL):
+            return self._eval_compound_assignment(node)
 
+        if node.op == TokenType.LOGICAL_AND:
             left_value = self.evaluate(node.left)
-            right_value = self.evaluate(node.right)
+            if not left_value:
+                return False
+            return self.evaluate(node.right)
 
-            operation = self._binary_op_handlers.get(node.op)
-            if operation:
-                try:
-                    return operation(left_value, right_value)
-                except TypeError:
-                    raise RuntimeError(
-                        f"Incompatible types for operation {node.op}: {type(left_value).__name__} and {type(right_value).__name__}",
-                        node=node,
-                        scope=self.scope,
-                    )
-                except ZeroDivisionError:
-                    raise RuntimeError("Division by zero", node=node, scope=self.scope)
+        if node.op == TokenType.LOGICAL_OR:
+            left_value = self.evaluate(node.left)
+            if left_value:
+                return True
+            return self.evaluate(node.right)
 
-            raise RuntimeError(
-                f"Unsupported binary operation: {node.op}", node=node, scope=self.scope
-            )
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"Binary operation error: {str(e)}", node=node, scope=self.scope
-            )
+        left_value = self.evaluate(node.left)
+        right_value = self.evaluate(node.right)
+
+        operation = self._binary_op_handlers.get(node.op)
+        if operation:
+            try:
+                return operation(left_value, right_value)
+            except TypeError:
+                raise RuntimeError(
+                    f"Incompatible types for operation {node.op}: {type(left_value).__name__} and {type(right_value).__name__}",
+                    node=node,
+                    scope=self.scope,
+                )
+            except ZeroDivisionError:
+                raise RuntimeError("Division by zero", node=node, scope=self.scope)
+
+        raise RuntimeError(
+            f"Unsupported binary operation: {node.op}", node=node, scope=self.scope
+        )
 
     def _eval_compound_assignment(self, node) -> Any:
-        try:
-            if not isinstance(node.left, IdentifierNode):
-                raise RuntimeError(
-                    "Left side of compound assignment must be a variable",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            left_value = self.scope.lookup(node.left.name)
-            right_value = self.evaluate(node.right)
-
-            if node.op == TokenType.PLUS_EQUAL:
-                try:
-                    result = left_value + right_value
-                except TypeError:
-                    raise RuntimeError(
-                        f"Cannot add {type(left_value).__name__} and {type(right_value).__name__}",
-                        node=node,
-                        scope=self.scope,
-                    )
-            elif node.op == TokenType.MINUS_EQUAL:
-                try:
-                    result = left_value - right_value
-                except TypeError:
-                    raise RuntimeError(
-                        f"Cannot subtract {type(right_value).__name__} from {type(left_value).__name__}",
-                        node=node,
-                        scope=self.scope,
-                    )
-            else:
-                raise RuntimeError(
-                    f"Unsupported compound assignment: {node.op}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            self.scope.assign(node.left.name, result)
-            return result
-        except RuntimeError:
-            raise
-        except Exception as e:
+        if not isinstance(node.left, IdentifierNode):
             raise RuntimeError(
-                f"Compound assignment error: {str(e)}", node=node, scope=self.scope
+                "Left side of compound assignment must be a variable",
+                node=node,
+                scope=self.scope,
             )
+
+        left_value = self.scope.lookup(node.left.name)
+        right_value = self.evaluate(node.right)
+
+        if node.op == TokenType.PLUS_EQUAL:
+            try:
+                result = left_value + right_value
+            except TypeError:
+                raise RuntimeError(
+                    f"Cannot add {type(left_value).__name__} and {type(right_value).__name__}",
+                    node=node,
+                    scope=self.scope,
+                )
+        elif node.op == TokenType.MINUS_EQUAL:
+            try:
+                result = left_value - right_value
+            except TypeError:
+                raise RuntimeError(
+                    f"Cannot subtract {type(right_value).__name__} from {type(left_value).__name__}",
+                    node=node,
+                    scope=self.scope,
+                )
+        else:
+            raise RuntimeError(
+                f"Unsupported compound assignment: {node.op}",
+                node=node,
+                scope=self.scope,
+            )
+
+        self.scope.assign(node.left.name, result)
+
+        return result
 
     def _eval_function_call(self, node) -> Any:
-        try:
-            func = self.scope.lookup(node.name)
+        func = self.scope.lookup(node.name)
 
-            if not isinstance(func, Function):
-                raise RuntimeError(
-                    f"Attempted to call a non-callable object: {node.name}",
-                    node=node,
-                    scope=self.scope,
-                )
-
-            try:
-                arguments = [self.evaluate(arg) for arg in node.arguments]
-                return func(arguments)
-            except RuntimeError:
-                raise
-            except Exception as e:
-                raise RuntimeError(
-                    f"Error calling function '{node.name}': {str(e)}",
-                    node=node,
-                    scope=self.scope,
-                )
-        except RuntimeError:
-            raise
-        except Exception as e:
+        if not isinstance(func, Function):
             raise RuntimeError(
-                f"Function call error: {str(e)}", node=node, scope=self.scope
+                f"Attempted to call a non-callable object: {node.name}",
+                node=node,
+                scope=self.scope,
             )
+
+        arguments = [self.evaluate(arg) for arg in node.arguments]
+        return func(arguments)
 
     def _eval_function_declaration(self, node) -> Function:
-        try:
-            func = UserFunction(node.name, node, self.scope)
-            self.scope.define(node.name, func)
-            return func
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"Function declaration error: {str(e)}", node=node, scope=self.scope
-            )
+        func = UserFunction(node.name, node, self.scope)
+        self.scope.define(node.name, func)
+        return func
 
     def _eval_return(self, node) -> Any:
-        try:
-            return self.evaluate(node.value)
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"Return statement error: {str(e)}", node=node, scope=self.scope
-            )
+        return self.evaluate(node.value)
 
     def _eval_var_declaration(self, node) -> Any:
-        try:
-            value = self.evaluate(node.value)
-            self.scope.define(node.name, value)
-            return value
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"Variable declaration error: {str(e)}", node=node, scope=self.scope
-            )
+        value = self.evaluate(node.value)
+        self.scope.define(node.name, value)
+        return value
 
     def _eval_var_assignment(self, node) -> Any:
-        try:
-            value = self.evaluate(node.value)
-            self.scope.assign(node.name, value)
-            return value
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"Variable assignment error: {str(e)}", node=node, scope=self.scope
-            )
+        value = self.evaluate(node.value)
+        self.scope.assign(node.name, value)
+        return value
 
     def _eval_if(self, node) -> Any:
-        try:
-            condition = self.evaluate(node.condition)
-            if condition:
-                return self.evaluate(node.body)
-            return None
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"If statement error: {str(e)}", node=node, scope=self.scope
-            )
+        condition = self.evaluate(node.condition)
+        if condition:
+            runtime = Runtime(Scope(parent=self.scope))
+            result = None
+            for stmt in node.body:
+                result = runtime.evaluate(stmt)
+            return result
+        return None
 
     def _eval_while(self, node) -> None:
-        try:
-            while self.evaluate(node.condition):
-                for stmt in node.body:
-                    try:
-                        self.evaluate(stmt)
-                    except RuntimeError:
-                        raise
-                    except Exception as e:
-                        raise RuntimeError(
-                            f"While loop body error: {str(e)}",
-                            node=stmt,
-                            scope=self.scope,
-                        )
-            return None
-        except RuntimeError:
-            raise
-        except Exception as e:
-            raise RuntimeError(
-                f"While loop error: {str(e)}", node=node, scope=self.scope
-            )
+        result = None
+        while_scope = Scope(parent=self.scope)
+        while_runtime = Runtime(while_scope)
+
+        iteration = 0
+        while while_runtime.evaluate(node.condition):
+            result = None
+            for stmt in node.body:
+                result = while_runtime.evaluate(stmt)
+                if isinstance(stmt, ReturnNode):
+                    return result
+            iteration += 1
+            if iteration > 1000:
+                raise RuntimeError("Maximum iteration limit reached")
+
+        return result
 
     def execute(self, statements) -> Any:
         result = None
         for statement in statements:
-            try:
-                result = self.evaluate(statement)
-            except RuntimeError:
-                raise
-            except Exception as e:
-                raise RuntimeError(
-                    f"Statement execution error: {str(e)}",
-                    node=statement,
-                    scope=self.scope,
-                )
+            result = self.evaluate(statement)
         return result
